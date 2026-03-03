@@ -370,7 +370,8 @@ abi_stable = "0.11.1"
 Check Findex logs for plugin errors:
 
 ```bash
-tail -f ~/.cache/findex-logs/latest.log
+# View the most recent log file
+tail -f ~/.cache/findex-logs/findex-*.log | tail -n 50
 ```
 
 Common issues:
@@ -477,7 +478,7 @@ When sharing your plugin:
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Plugin API Reference" icon="book" href="/api-reference/plugin-api">
+  <Card title="Plugin API Reference" icon="book" href="/api/plugin-basics">
     Detailed API documentation
   </Card>
   

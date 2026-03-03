@@ -1,0 +1,304 @@
+---
+title: Built-in Plugins
+description: Documentation for plugins included with Findex
+---
+
+Findex includes several built-in plugins that provide useful functionality out of the box. These plugins are located in the `plugins/` directory of the source repository.
+
+## URL Opener
+
+Opens URLs in your default browser.
+
+### Configuration
+
+```toml
+[plugins.urlopen]
+path = "/path/to/liburlopen.so"
+```
+
+### Usage
+
+**Default Prefix:** `url!`
+
+Type the prefix followed by any URL:
+
+```
+url!https://github.com
+url!https://example.com/page
+url!localhost:3000
+```
+
+### Implementation Details
+
+<CodeGroup>
+```rust Plugin Code
+fn handle_query(query: RStr) -> RVec<FResult> {
+    if query == "" {
+        return RVec::new();
+    }
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::Command(
+            RString::from(format!("xdg-open \"{query}\""))
+        ),
+        name: RString::from(format!("Open {query}")),
+        desc: RNone,
+        score: isize::MAX,
+        icon: RString::from("browser"),
+    }])
+}
+
+define_plugin!("url!", init, handle_query);
+```
+
+```toml Configuration Example
+[plugins.urlopen]
+path = "~/.config/findex/plugins/liburlopen.so"
+prefix = "open!"  # Optional: override default prefix
+```
+</CodeGroup>
+
+<Note>
+Uses `xdg-open` to launch URLs in the default browser on Linux systems.
+</Note>
+
+---
+
+## GitHub Repository
+
+Quickly open GitHub repositories by owner/repo name.
+
+### Configuration
+
+```toml
+[plugins.github]
+path = "/path/to/libgithub_repo.so"
+```
+
+### Usage
+
+**Default Prefix:** `github!`
+
+**Format:** `owner/repository`
+
+Type the prefix followed by the repository in `owner/repo` format:
+
+```
+github!rust-lang/rust
+github!torvalds/linux
+github!facebook/react
+```
+
+### Implementation Details
+
+<CodeGroup>
+```rust Plugin Code
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let regex = Regex::new("[a-zA-Z0-9]+/[a-zA-Z0-9]+")
+        .unwrap();
+
+    if !regex.is_match(query.as_str()) {
+        return RVec::new();
+    }
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::Command(
+            RString::from(format!("xdg-open https://github.com/{query}"))
+        ),
+        icon: RString::from("github"),
+        score: isize::MAX,
+        name: RString::from("Open github repository"),
+        desc: RNone,
+    }])
+}
+
+define_plugin!("github!", init, handle_query);
+```
+
+```toml Configuration Example
+[plugins.github]
+path = "~/.config/findex/plugins/libgithub_repo.so"
+keyboard_shortcut = "<Ctrl><Shift>G"
+```
+</CodeGroup>
+
+<Note>
+Validates input using regex to ensure proper `owner/repo` format before attempting to open.
+</Note>
+
+---
+
+## Command Executor
+
+Execute terminal commands directly from Findex without opening a new terminal window.
+
+### Configuration
+
+```toml
+[plugins.cmd]
+path = "/path/to/libcmd.so"
+```
+
+### Usage
+
+**Default Prefix:** `cmd!`
+
+**Default Shortcut:** `<Ctrl><Shift>C`
+
+Type the prefix followed by any shell command:
+
+```
+cmd!ls -la
+cmd!git status
+cmd!systemctl restart nginx
+```
+
+### Implementation Details
+
+<CodeGroup>
+```rust Plugin Code
+fn handle_query(query: RStr) -> RVec<FResult> {
+    if query == "" {
+        return RVec::new();
+    }
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::Command(
+            RString::from(format!("{query}"))
+        ),
+        name: RString::from(format!("Run \"{query}\"")),
+        desc: RNone,
+        score: isize::MAX,
+        icon: RString::from("terminal"),
+    }])
+}
+
+define_plugin!("cmd!", "<Ctrl><Shift>C", init, handle_query);
+```
+
+```toml Configuration Example
+[plugins.cmd]
+path = "~/.config/findex/plugins/libcmd.so"
+keyboard_shortcut = "<Super>R"  # Override default shortcut
+```
+</CodeGroup>
+
+<Warning>
+Commands execute without a visible terminal window. For interactive commands, use your regular terminal instead.
+</Warning>
+
+---
+
+## Math Calculator
+
+Perform calculations directly in the search box.
+
+### Configuration
+
+```toml
+[plugins.math]
+path = "/path/to/libmath.so"
+```
+
+### Usage
+
+**Default Prefix:** (empty string - always active)
+
+Simply type mathematical expressions:
+
+```
+2 + 2
+45 * 12
+sqrt(144)
+sin(pi/2)
+```
+
+### Implementation Details
+
+<CodeGroup>
+```rust Plugin Code
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let mut context = fend_core::Context::new();
+
+    let Ok(result) = fend_core::evaluate(
+        &format!("@plain_number {}", query), 
+        &mut context
+    ) else {
+        return RVec::new();
+    };
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::None,
+        icon: RString::from("calc"),
+        score: isize::MAX,
+        name: RString::from(result.get_main_result()),
+        desc: RNone,
+    }])
+}
+
+define_plugin!("", init, handle_query);
+```
+
+```toml Configuration Example
+[plugins.math]
+path = "~/.config/findex/plugins/libmath.so"
+```
+</CodeGroup>
+
+<Note>
+Uses the `fend-core` library for expression evaluation. Supports advanced math functions and unit conversions.
+</Note>
+
+---
+
+## Plugin Comparison
+
+| Plugin | Prefix | Shortcut | Use Case |
+|--------|--------|----------|----------|
+| urlopen | `url!` | None | Open URLs in browser |
+| github-repo | `github!` | None | Open GitHub repositories |
+| cmd | `cmd!` | `<Ctrl><Shift>C` | Execute shell commands |
+| math | (none) | None | Calculate expressions |
+
+## Building Built-in Plugins
+
+To compile the built-in plugins from source:
+
+<Steps>
+  <Step title="Navigate to plugin directory">
+    ```bash
+    cd findex/plugins/urlopen
+    ```
+  </Step>
+  
+  <Step title="Build in release mode">
+    ```bash
+    cargo build --release
+    ```
+  </Step>
+  
+  <Step title="Find the compiled plugin">
+    The `.so` file will be in `target/release/`:
+    ```bash
+    ls target/release/*.so
+    ```
+  </Step>
+  
+  <Step title="Install to config directory">
+    ```bash
+    cp target/release/*.so ~/.config/findex/plugins/
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Using Plugins" icon="download" href="/plugins/using-plugins">
+    Learn how to configure and use plugins
+  </Card>
+  
+  <Card title="Developing Plugins" icon="code" href="/plugins/developing-plugins">
+    Create your own custom plugins
+  </Card>
+</CardGroup>

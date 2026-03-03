@@ -1,0 +1,513 @@
+---
+title: "CSS Customization"
+description: "Customize Findex appearance using CSS styling"
+---
+
+Findex is highly customizable through CSS. You can modify colors, spacing, fonts, borders, and virtually any visual aspect of the application.
+
+## Style File Location
+
+The CSS file is located at:
+- **User config**: `~/.config/findex/style.css`
+- **System default**: `/opt/findex/style.css`
+
+If `~/.config/findex/style.css` doesn't exist, Findex will create it automatically with default styles on first run.
+
+---
+
+## Available CSS Classes
+
+Findex uses specific CSS classes for each UI component. You can target these classes to customize the appearance.
+
+<ParamField path=".findex-window" type="class">
+  Top-level window container.
+  
+  ```css
+  .findex-window {
+      background: transparent;
+      border: none;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-container" type="class">
+  Top-level container holding all widgets (search box and results).
+  
+  ```css
+  .findex-container {
+      background: rgb(20, 20, 20);
+      border-radius: 10px;
+      margin: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 20px -17px rgba(0,0,0,1);
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-query-container" type="class">
+  Container wrapping the search input box and icon.
+  
+  ```css
+  .findex-query-container {
+      border: none;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-query" type="class">
+  Text input box where users type their search queries.
+  
+  ```css
+  .findex-query {
+      background: none;
+      padding: 20px 24px;
+      font-size: 25px;
+      border: none;
+      color: #ddd;
+      box-shadow: none;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-query-icon" type="class">
+  Icon displayed beside the search box (configured via `entry_icon` setting).
+  
+  ```css
+  .findex-query-icon {
+      margin: 20px 0 20px 20px;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-results-scroll" type="class">
+  Scrollable container that holds the results list.
+  
+  ```css
+  .findex-results-scroll {
+      padding: 5px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+      background-image: none;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-results" type="class">
+  ListBox widget containing all search result rows.
+  
+  ```css
+  .findex-results {
+      background: none;
+      border-radius: 5px;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-row" type="class">
+  Individual search result row. Use `:selected` pseudo-class for the highlighted result.
+  
+  ```css
+  .findex-result-row {
+      outline: none;
+      margin: 5px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #202020;
+      border-left: 5px solid #bbbbbb;
+  }
+  
+  .findex-result-row:selected {
+      background: #252525;
+      border-left: 5px solid #50ee50;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-icon-container" type="class">
+  Container wrapping the application icon in each result row.
+  
+  ```css
+  .findex-result-icon-container {
+      /* Add custom styles */
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-icon" type="class">
+  Application icon image displayed in each result.
+  
+  ```css
+  .findex-result-icon {
+      margin-right: 20px;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-info-container" type="class">
+  Container holding the text information (name, description, command) for each result.
+  
+  ```css
+  .findex-result-info-container {
+      /* Add custom styles */
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-app-name" type="class">
+  Application name text in each result row.
+  
+  ```css
+  .findex-result-app-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: #ddd;
+      margin-left: 7px;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-app-description" type="class">
+  Application description text in each result row.
+  
+  ```css
+  .findex-result-app-description {
+      color: rgba(255, 255, 255, 0.7);
+      margin-left: 7px;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-app-command" type="class">
+  Application command/executable text in each result row.
+  
+  ```css
+  .findex-result-app-command {
+      color: rgba(255, 255, 255, 0.7);
+      font-style: italic;
+      margin-left: 7px;
+  }
+  ```
+</ParamField>
+
+<ParamField path=".findex-result-trigger-shortcut" type="class">
+  Keyboard shortcut indicator (Alt+1 through Alt+0) shown for each result.
+  
+  ```css
+  .findex-result-trigger-shortcut {
+      padding-right: 20px;
+      color: #eee;
+  }
+  ```
+</ParamField>
+
+---
+
+## Customization Examples
+
+<Tabs>
+  <Tab title="Dark Theme with Accent">
+    A dark theme with cyan accents and rounded corners:
+    
+    ```css
+    .findex-container {
+        background: #1a1a1a;
+        border-radius: 12px;
+        border: 2px solid #00d4ff;
+        box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+    }
+    
+    .findex-query {
+        color: #ffffff;
+        font-size: 28px;
+        padding: 25px;
+    }
+    
+    .findex-result-row:selected {
+        background: #2a2a2a;
+        border-left: 5px solid #00d4ff;
+    }
+    
+    .findex-result-app-name {
+        color: #00d4ff;
+        font-weight: 600;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Light Theme">
+    A clean light theme:
+    
+    ```css
+    .findex-container {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .findex-query {
+        color: #333333;
+        font-size: 24px;
+    }
+    
+    .findex-results-scroll {
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .findex-result-row {
+        border: 1px solid #f0f0f0;
+    }
+    
+    .findex-result-row:selected {
+        background: #f5f5f5;
+        border-left: 5px solid #4285f4;
+    }
+    
+    .findex-result-app-name {
+        color: #202124;
+    }
+    
+    .findex-result-app-description,
+    .findex-result-app-command {
+        color: #5f6368;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Minimal Transparent">
+    A minimal design with transparency:
+    
+    ```css
+    .findex-container {
+        background: rgba(0, 0, 0, 0.85);
+        border: none;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .findex-query {
+        color: #ffffff;
+        font-size: 22px;
+        padding: 18px 20px;
+    }
+    
+    .findex-results-scroll {
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    
+    .findex-result-row {
+        border: none;
+        margin: 3px;
+        padding: 8px;
+    }
+    
+    .findex-result-row:selected {
+        background: rgba(255, 255, 255, 0.1);
+        border-left: 3px solid #ffffff;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Colorful Gradients">
+    A vibrant theme with gradient accents:
+    
+    ```css
+    .findex-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        border: none;
+    }
+    
+    .findex-query {
+        color: #ffffff;
+        font-size: 26px;
+        font-weight: 300;
+    }
+    
+    .findex-query::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .findex-results-scroll {
+        background: rgba(0, 0, 0, 0.2);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0 0 15px 15px;
+    }
+    
+    .findex-result-row {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .findex-result-row:selected {
+        background: rgba(255, 255, 255, 0.2);
+        border-left: 5px solid #ffd700;
+    }
+    
+    .findex-result-app-name {
+        color: #ffffff;
+        font-weight: 600;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Common Customizations
+
+<Accordion title="Change window size and margins">
+  ```css
+  .findex-container {
+      margin: 100px 200px; /* top/bottom left/right */
+  }
+  ```
+  
+  Combine with the `default_window_width` setting in `settings.toml`:
+  ```toml
+  default_window_width = 900
+  ```
+</Accordion>
+
+<Accordion title="Customize fonts">
+  ```css
+  .findex-query {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px;
+      font-weight: 400;
+  }
+  
+  .findex-result-app-name {
+      font-family: "Inter", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+  }
+  ```
+</Accordion>
+
+<Accordion title="Change selection highlight">
+  ```css
+  .findex-result-row:selected {
+      background: #ff6b6b;
+      border-left: 5px solid #ff0000;
+      box-shadow: 0 2px 10px rgba(255, 107, 107, 0.5);
+  }
+  ```
+</Accordion>
+
+<Accordion title="Adjust result spacing">
+  ```css
+  .findex-result-row {
+      margin: 8px 10px;
+      padding: 15px;
+  }
+  
+  .findex-result-icon {
+      margin-right: 15px;
+  }
+  ```
+</Accordion>
+
+<Accordion title="Hide specific elements">
+  ```css
+  /* Hide command text */
+  .findex-result-app-command {
+      display: none;
+  }
+  
+  /* Hide keyboard shortcuts */
+  .findex-result-trigger-shortcut {
+      display: none;
+  }
+  
+  /* Hide search icon */
+  .findex-query-icon {
+      display: none;
+  }
+  ```
+</Accordion>
+
+<Accordion title="Add animations">
+  ```css
+  .findex-result-row {
+      transition: all 0.2s ease;
+  }
+  
+  .findex-result-row:selected {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .findex-container {
+      animation: fadeIn 0.15s ease-out;
+  }
+  
+  @keyframes fadeIn {
+      from {
+          opacity: 0;
+          transform: translateY(-10px);
+      }
+      to {
+          opacity: 1;
+          transform: translateY(0);
+      }
+  }
+  ```
+</Accordion>
+
+---
+
+## Tips and Best Practices
+
+<Note>
+  **Live Reload**: Changes to `style.css` require restarting Findex to take effect. Close the window and toggle it again, or restart `findex-daemon`.
+</Note>
+
+<Note>
+  **GTK CSS Limitations**: Findex uses GTK3, which supports a subset of CSS. Not all standard CSS properties work. Refer to [GTK CSS documentation](https://docs.gtk.org/gtk3/css-properties.html) for supported properties.
+</Note>
+
+<Warning>
+  **Backup Your Styles**: Before making major changes, back up your `style.css`:
+  ```bash
+  cp ~/.config/findex/style.css ~/.config/findex/style.css.bak
+  ```
+</Warning>
+
+<Note>
+  **Test Incrementally**: Make small changes and test frequently to identify which styles work best.
+</Note>
+
+---
+
+## Troubleshooting
+
+<Accordion title="Styles not applying">
+  1. Ensure the CSS syntax is valid (no missing semicolons or braces)
+  2. Restart `findex-daemon`:
+     ```bash
+     killall findex-daemon
+     findex-daemon &
+     ```
+  3. Check for error messages in `~/.cache/findex-logs`
+  4. Verify you're editing the correct file (`~/.config/findex/style.css`)
+</Accordion>
+
+<Accordion title="Reset to default styles">
+  Delete your custom style file to regenerate defaults:
+  ```bash
+  rm ~/.config/findex/style.css
+  ```
+  
+  Or copy from the system default:
+  ```bash
+  cp /opt/findex/style.css ~/.config/findex/style.css
+  ```
+</Accordion>
+
+---
+
+## Further Reading
+
+- [GTK3 CSS Properties Reference](https://docs.gtk.org/gtk3/css-properties.html)
+- [Configuration Guide](/guides/configuration) - Adjust behavior settings
+- [Keyboard Shortcuts](/guides/keyboard-shortcuts) - Customize keyboard controls

@@ -1,0 +1,136 @@
+---
+title: "Plugin API Overview"
+description: "Learn how to create Findex plugins with the plugin API architecture and setup"
+---
+
+## Overview
+
+Findex provides a powerful plugin system that allows developers to extend its functionality. Plugins are dynamic libraries (`.so` files on Linux) that are loaded at runtime and can provide custom search results based on user queries.
+
+Plugins are written in Rust and use the Foreign Function Interface (FFI) through the `abi_stable` crate to ensure ABI compatibility across different Rust compiler versions.
+
+## Architecture
+
+The plugin system consists of:
+
+- **Plugin API** (`findex-plugin` crate): Provides types and macros for creating plugins
+- **Plugin Loading**: Findex dynamically loads plugins at startup
+- **Query Handling**: Plugins receive queries and return results
+- **Configuration**: Plugins can be configured through `settings.toml`
+
+## Required Dependencies
+
+To create a Findex plugin, you need two essential dependencies:
+
+```toml Cargo.toml
+[dependencies]
+findex-plugin = "0.8.3"
+abi_stable = "0.11.1"
+```
+
+<Note>
+The version of `findex-plugin` should match or be compatible with the version of Findex you're targeting. Always check the latest version on [crates.io](https://crates.io/crates/findex-plugin).
+</Note>
+
+## Cargo.toml Setup
+
+Plugins must be compiled as dynamic libraries. Configure your `Cargo.toml` with:
+
+```toml Cargo.toml
+[package]
+name = "my-plugin"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+findex-plugin = "0.8.3"
+abi_stable = "0.11.1"
+# Add any additional dependencies your plugin needs
+```
+
+The `crate-type = ["cdylib"]` setting is critical - it tells Cargo to compile your library as a C-compatible dynamic library.
+
+## Basic Plugin Structure
+
+Every Findex plugin follows this structure:
+
+```rust src/lib.rs
+use abi_stable::std_types::*;
+use findex_plugin::{define_plugin, FResult, ApplicationCommand};
+
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Initialize your plugin
+    // Access configuration values from the config parameter
+    // Return ROk(()) on success, or RErr(error_message) on failure
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    // Process the user's query
+    // Return a vector of results
+    let results = vec![
+        FResult {
+            name: RString::from("Result Name"),
+            desc: RNone,
+            cmd: ApplicationCommand::Command(RString::from("echo hello")),
+            icon: RString::from("application-x-executable"),
+            score: 100,
+        }
+    ];
+    
+    RVec::from(results)
+}
+
+// Define the plugin with a prefix
+define_plugin!("myplugin!", init, handle_query);
+```
+
+## Key Components
+
+### 1. Init Function
+
+The `init` function is called when Findex loads your plugin. Use it to:
+- Validate configuration
+- Initialize resources
+- Set up any state your plugin needs
+
+See [Plugin Configuration](/api/configuration) for details on accessing config values.
+
+### 2. Handle Query Function
+
+The `handle_query` function processes user queries and returns results. It's called every time the user types text that matches your plugin's prefix.
+
+See [FResult Documentation](/api/fresult) for details on creating results.
+
+### 3. Define Plugin Macro
+
+The `define_plugin!` macro exports the necessary symbols for Findex to load and use your plugin.
+
+See [Plugin Macros](/api/plugin-macros) for detailed documentation.
+
+## Building Your Plugin
+
+Compile your plugin in release mode for optimal performance:
+
+```bash
+cargo build --release
+```
+
+The compiled plugin will be at `target/release/libmy_plugin.so` (on Linux).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="FResult Struct" icon="box" href="/api/fresult">
+    Learn about the result type returned by plugins
+  </Card>
+  <Card title="Plugin Macros" icon="code" href="/api/plugin-macros">
+    Explore the define_plugin! macro in detail
+  </Card>
+  <Card title="Configuration" icon="gear" href="/api/configuration">
+    Configure your plugin with settings.toml
+  </Card>
+</CardGroup>

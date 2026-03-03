@@ -1,0 +1,76 @@
+---
+title: Introduction to Findex
+description: A highly customizable GTK3 application launcher for Linux with fuzzy search, plugin system, and CSS styling
+---
+
+# Introduction to Findex
+
+Findex is a highly customizable application launcher written in Rust and uses GTK3. Designed for Linux power users, Findex combines blazing-fast fuzzy search with deep customization options to help you launch applications exactly the way you want.
+
+## What is Findex?
+
+Findex is a lightweight, keyboard-driven application launcher that sits in the background and springs to action when you need it. Unlike traditional application menus, Findex uses intelligent fuzzy search to help you find and launch applications with just a few keystrokes.
+
+<CardGroup cols={2}>
+  <Card title="Full CSS customization" icon="paintbrush">
+    Style every aspect of Findex using CSS. Change colors, fonts, borders, spacing, and more to match your desktop theme perfectly.
+  </Card>
+  
+  <Card title="Powerful plugin system" icon="plug">
+    Extend Findex functionality with Rust-based plugins. Add custom search sources, integrate with external services, or create entirely new workflows.
+  </Card>
+  
+  <Card title="Fuzzy search" icon="magnifying-glass">
+    Find applications quickly with intelligent fuzzy matching. Type partial names and let Findex figure out what you mean.
+  </Card>
+  
+  <Card title="Keyboard shortcuts" icon="keyboard">
+    Trigger plugins and execute results with customizable keyboard shortcuts. Execute any of the top 10 results instantly with number keys.
+  </Card>
+</CardGroup>
+
+## Key features
+
+- **Customization using CSS**: Apply custom styles to any UI element using standard CSS properties
+- **Plugin system**: Write plugins in Rust to add new functionality and search sources
+- **Custom shortcuts**: Define keyboard shortcuts for triggering plugins and executing results
+- **Fast fuzzy search**: Powered by Sublime-style fuzzy matching for accurate results
+- **Configurable behavior**: Control window size, result count, scoring thresholds, and more via `settings.toml`
+- **Wayland and X11 support**: Works on both display servers with appropriate configuration
+
+## Architecture
+
+Findex runs as a daemon (`findex-daemon`) that stays in the background, waiting for your hotkey. When triggered, it launches the main Findex window for searching and launching applications. This architecture keeps memory usage low and ensures instant response times.
+
+<Info>
+  Findex is currently at version 0.8.3 and actively maintained. Check the [GitHub repository](https://github.com/mdgaziur/findex) for the latest updates.
+</Info>
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install Findex from source, AUR, or using the automated installer
+  </Card>
+  
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Get up and running with Findex in minutes
+  </Card>
+</CardGroup>
+
+## System requirements
+
+- **Operating System**: Linux (X11 or Wayland)
+- **Dependencies**: GTK3, libkeybinder3
+- **Build Requirements**: Rust v1.66.0 or later (if building from source)
+
+## Why Findex?
+
+If you're a Linux user who values:
+- Speed and efficiency in your workflow
+- Deep customization options
+- Keyboard-driven interfaces
+- Extensibility through plugins
+- Lightweight, focused tools
+
+Then Findex is built for you.

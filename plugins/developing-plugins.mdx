@@ -1,0 +1,487 @@
+---
+title: Developing Plugins
+description: Complete guide to creating custom Findex plugins
+---
+
+This guide walks you through creating custom plugins to extend Findex's functionality. Plugins are written in Rust and compiled as dynamic libraries.
+
+## Prerequisites
+
+- Rust toolchain (1.66.0 or later)
+- Basic understanding of Rust
+- Findex installed and configured
+- Familiarity with `cargo` build system
+
+<Note>
+Only Rust-based plugins are currently supported. The plugin system uses `abi_stable` for binary compatibility.
+</Note>
+
+## Quick Start
+
+<Steps>
+  <Step title="Create a new library project">
+    ```bash
+    cargo new --lib my-findex-plugin
+    cd my-findex-plugin
+    ```
+  </Step>
+  
+  <Step title="Configure Cargo.toml">
+    Set the crate type to `cdylib` and add dependencies:
+    
+    ```toml
+    [package]
+    name = "my-findex-plugin"
+    version = "0.1.0"
+    edition = "2021"
+
+    [lib]
+    crate-type = ["cdylib"]
+
+    [dependencies]
+    findex-plugin = { path = "/path/to/findex/crates/findex-plugin" }
+    abi_stable = "0.11.1"
+    ```
+  </Step>
+  
+  <Step title="Write plugin code">
+    Replace `src/lib.rs` with your plugin implementation (see template below).
+  </Step>
+  
+  <Step title="Build and test">
+    ```bash
+    cargo build --release
+    cp target/release/*.so ~/.config/findex/plugins/
+    ```
+  </Step>
+</Steps>
+
+## Plugin Template
+
+Here's a complete minimal plugin template:
+
+```rust
+use findex_plugin::{define_plugin, FResult, ApplicationCommand};
+use abi_stable::std_types::*;
+
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Initialize your plugin here
+    // Access configuration values from the config parameter
+    // Return RErr(error_message) if initialization fails
+    
+    ROk(())  // Success
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let mut results = vec![];
+    
+    // Process the query and build results
+    if query.is_empty() {
+        return RVec::new();
+    }
+    
+    results.push(FResult {
+        name: RString::from("Result Name"),
+        desc: ROption::RSome(RString::from("Description")),
+        cmd: ApplicationCommand::Command(RString::from("echo 'Hello'")) ,
+        icon: RString::from("icon-name"),
+        score: 100,
+    });
+    
+    RVec::from(results)
+}
+
+// Define the plugin with prefix only
+define_plugin!("myprefix!", init, handle_query);
+
+// Or with a keyboard shortcut
+// define_plugin!("myprefix!", "<Ctrl><Shift>M", init, handle_query);
+```
+
+## Core Components
+
+### The `FResult` Structure
+
+Results returned by plugins use the `FResult` struct:
+
+```rust
+pub struct FResult {
+    /// Display name shown to the user
+    pub name: RString,
+    
+    /// Optional description (can be RNone)
+    pub desc: ROption<RString>,
+    
+    /// Command to execute when selected
+    pub cmd: ApplicationCommand,
+    
+    /// Icon name (from theme) or path to icon file
+    pub icon: RString,
+    
+    /// Sort priority (higher = shown first)
+    pub score: isize,
+}
+```
+
+**Field Details:**
+
+<Accordion title="name">
+  The primary text displayed in the result. Keep it concise and descriptive.
+  
+  ```rust
+  name: RString::from("Open GitHub Repository")
+  ```
+</Accordion>
+
+<Accordion title="desc">
+  Optional secondary text. Use `RNone` if no description is needed.
+  
+  ```rust
+  desc: ROption::RSome(RString::from("Opens in default browser"))
+  desc: ROption::RNone  // No description
+  ```
+</Accordion>
+
+<Accordion title="cmd">
+  The action to perform when the user selects this result.
+  
+  ```rust
+  // Execute a shell command
+  cmd: ApplicationCommand::Command(RString::from("firefox https://example.com"))
+  
+  // Launch an application by AppId
+  cmd: ApplicationCommand::Id(RString::from("org.gnome.Calculator"))
+  
+  // No action (e.g., for display-only results like calculator)
+  cmd: ApplicationCommand::None
+  ```
+</Accordion>
+
+<Accordion title="icon">
+  Icon to display next to the result. Can be a theme icon name or file path.
+  
+  ```rust
+  icon: RString::from("web-browser")      // Theme icon
+  icon: RString::from("/path/to/icon.png") // Custom icon
+  ```
+</Accordion>
+
+<Accordion title="score">
+  Determines result ordering. Higher scores appear first. Use `isize::MAX` for highest priority.
+  
+  ```rust
+  score: isize::MAX      // Highest priority
+  score: 1000            // High priority
+  score: 0               // Neutral
+  ```
+</Accordion>
+
+### The `init` Function
+
+Called once when Findex starts. Use it to initialize resources or validate configuration.
+
+```rust
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Access configuration values
+    if let Some(api_key) = config.get(&RString::from("api_key")) {
+        // Initialize with API key
+        println!("API Key: {}", api_key);
+    }
+    
+    // Return error if initialization fails
+    if some_validation_fails {
+        return RErr(RString::from("Initialization failed: invalid config"));
+    }
+    
+    ROk(())  // Success
+}
+```
+
+**Configuration Access:**
+
+Users provide configuration in `settings.toml`:
+
+```toml
+[plugins.my_plugin.config]
+api_key = "secret123"
+timeout = "30"
+max_results = "10"
+```
+
+Access these values in your `init` function:
+
+```rust
+let api_key = config.get(&RString::from("api_key"));
+let timeout = config.get(&RString::from("timeout"))
+    .and_then(|s| s.parse::<u64>().ok())
+    .unwrap_or(30);
+```
+
+<Warning>
+All config values are strings. Parse them to the appropriate types and provide sensible defaults.
+</Warning>
+
+### The `handle_query` Function
+
+Called every time the user types after your plugin's prefix.
+
+```rust
+fn handle_query(query: RStr) -> RVec<FResult> {
+    // Return empty if query is empty
+    if query.is_empty() {
+        return RVec::new();
+    }
+    
+    // Process the query
+    let results = vec![
+        FResult {
+            name: RString::from(format!("Search for: {}", query)),
+            desc: RNone,
+            cmd: ApplicationCommand::Command(
+                RString::from(format!("xdg-open 'https://google.com/search?q={}'" , query))
+            ),
+            icon: RString::from("search"),
+            score: 100,
+        }
+    ];
+    
+    RVec::from(results)
+}
+```
+
+**Best Practices:**
+
+- Return empty `RVec::new()` for invalid queries
+- Keep processing fast (< 100ms) to maintain UI responsiveness
+- Sort results by relevance using the `score` field
+- Handle errors gracefully without panicking
+
+### The `define_plugin!` Macro
+
+Exposes your plugin's interface to Findex.
+
+**Without keyboard shortcut:**
+
+```rust
+define_plugin!("myprefix!", init, handle_query);
+```
+
+**With keyboard shortcut:**
+
+```rust
+define_plugin!("myprefix!", "<Ctrl><Shift>M", init, handle_query);
+```
+
+**Parameters:**
+
+1. **Prefix** (required): String that triggers your plugin (e.g., `"url!"`, `"calc!"`, `""`)
+2. **Keyboard shortcut** (optional): GTK accelerator string (e.g., `"<Ctrl><Shift>P"`)
+3. **Init function** (required): Your `init` function name
+4. **Query handler** (required): Your `handle_query` function name
+
+<Note>
+The prefix can be an empty string (`""`) to make your plugin always active (like the math calculator).
+</Note>
+
+## Real-World Example
+
+Here's the complete source of the built-in `cmd` plugin:
+
+<CodeGroup>
+```rust src/lib.rs
+use findex_plugin::{ApplicationCommand, define_plugin, FResult};
+use abi_stable::std_types::*;
+
+fn init(_: &RHashMap<RString, RString>) -> RResult<(), RString>  {
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    if query == "" {
+        return RVec::new();
+    }
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::Command(RString::from(format!("{query}"))),
+        name: RString::from(format!("Run \"{query}\"")),
+        desc: RNone,
+        score: isize::MAX,
+        icon: RString::from("terminal"),
+    }])
+}
+
+define_plugin!("cmd!", "<Ctrl><Shift>c", init, handle_query);
+```
+
+```toml Cargo.toml
+[package]
+name = "cmd"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+findex-plugin = { path = "../../crates/findex-plugin" }
+abi_stable = "0.11.1"
+```
+</CodeGroup>
+
+## Building and Testing
+
+<Steps>
+  <Step title="Build in release mode">
+    ```bash
+    cargo build --release
+    ```
+    
+    The plugin will be in `target/release/lib<name>.so`
+  </Step>
+  
+  <Step title="Copy to plugins directory">
+    ```bash
+    mkdir -p ~/.config/findex/plugins
+    cp target/release/*.so ~/.config/findex/plugins/
+    ```
+  </Step>
+  
+  <Step title="Add to settings.toml">
+    ```toml
+    [plugins.my_plugin]
+    path = "~/.config/findex/plugins/libmy_findex_plugin.so"
+    ```
+  </Step>
+  
+  <Step title="Restart Findex">
+    ```bash
+    killall findex-daemon
+    findex-daemon &
+    ```
+  </Step>
+  
+  <Step title="Test the plugin">
+    Open Findex and type your prefix followed by a query.
+  </Step>
+</Steps>
+
+## Debugging
+
+Check Findex logs for plugin errors:
+
+```bash
+tail -f ~/.cache/findex-logs/latest.log
+```
+
+Common issues:
+
+<AccordionGroup>
+  <Accordion title="Plugin fails to load">
+    - Verify the `.so` file path is correct
+    - Check for ABI compatibility issues
+    - Ensure `findex-plugin` version matches your Findex version
+    - Look for dependency errors in logs
+  </Accordion>
+  
+  <Accordion title="Init function errors">
+    - Return descriptive error messages from `init`
+    - Validate all configuration values
+    - Check file permissions for resources
+    - Verify external dependencies are installed
+  </Accordion>
+  
+  <Accordion title="Query handler not responding">
+    - Ensure prefix matches exactly (case-sensitive)
+    - Check if another plugin uses the same prefix
+    - Verify `handle_query` returns `RVec`, not `Vec`
+    - Test with simple queries first
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Topics
+
+### State Management
+
+Use `lazy_static` for global state:
+
+```rust
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref CACHE: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let mut cache = CACHE.lock().unwrap();
+    // Use cache...
+}
+```
+
+### Async Operations
+
+<Warning>
+Blocking operations in `handle_query` will freeze the Findex UI. Keep queries fast or use caching.
+</Warning>
+
+For plugins that need async operations, consider:
+
+- Pre-fetching data in `init`
+- Using caching with TTL
+- Spawning background threads
+- Returning partial results immediately
+
+### Error Handling
+
+```rust
+fn handle_query(query: RStr) -> RVec<FResult> {
+    // Gracefully handle errors
+    let result = match process_query(&query) {
+        Ok(data) => create_result(data),
+        Err(e) => FResult {
+            name: RString::from("Error"),
+            desc: RSome(RString::from(format!("Failed: {}", e))),
+            cmd: ApplicationCommand::None,
+            icon: RString::from("dialog-error"),
+            score: 0,
+        },
+    };
+    
+    RVec::from(vec![result])
+}
+```
+
+## Best Practices
+
+- **Keep it fast**: Aim for < 100ms query processing time
+- **Handle edge cases**: Empty queries, invalid input, network failures
+- **Use meaningful icons**: Helps users quickly identify results
+- **Provide good descriptions**: When the name alone isn't clear
+- **Sort by relevance**: Use scores appropriately
+- **Validate configuration**: Check required config keys in `init`
+- **Document your plugin**: Include a README with usage examples
+- **Version compatibility**: Specify compatible Findex versions
+
+## Publishing Your Plugin
+
+When sharing your plugin:
+
+1. Include a comprehensive README
+2. Document all configuration options
+3. Provide example `settings.toml` entries
+4. List dependencies and system requirements
+5. Specify compatible Findex versions
+6. Include build instructions
+7. Provide pre-compiled binaries if possible
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Plugin API Reference" icon="book" href="/api-reference/plugin-api">
+    Detailed API documentation
+  </Card>
+  
+  <Card title="Available Plugins" icon="plug" href="/plugins/available-plugins">
+    See examples from built-in plugins
+  </Card>
+</CardGroup>

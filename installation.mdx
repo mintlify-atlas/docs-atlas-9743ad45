@@ -1,0 +1,220 @@
+---
+title: Installation
+description: Install Findex on Linux using automated script, manual compilation, or AUR packages
+---
+
+# Installation
+
+Findex supports multiple installation methods to suit your preferences. Choose the method that works best for you.
+
+## System requirements
+
+Before installing Findex, ensure your system meets these requirements:
+
+<Info>
+  **Supported operating systems**: Linux only (both X11 and Wayland)
+</Info>
+
+### Runtime dependencies
+
+- GTK3
+- libkeybinder3
+
+### Build dependencies (for source installation)
+
+- Rust v1.66.0 or later
+- Cargo (comes with Rust)
+
+## Installation methods
+
+### Automated installation from source
+
+The easiest way to install Findex from source is using the provided installer script.
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/mdgaziur/findex.git
+    cd findex
+    ```
+  </Step>
+
+  <Step title="Run the installer">
+    ```bash
+    ./installer.sh
+    ```
+    
+    The installer will:
+    - Build Findex in release mode
+    - Copy binaries to `/usr/bin/`
+    - Copy default CSS to `/opt/findex/`
+    - Install systemd service files
+    - Create config directory at `~/.config/findex/`
+  </Step>
+
+  <Step title="Add daemon to autostart">
+    The installer will start `findex-daemon` for you, but you need to add it to your autostart applications.
+    
+    For systemd users:
+    ```bash
+    systemctl enable --user findex-daemon.service
+    systemctl start --user findex-daemon.service
+    ```
+  </Step>
+</Steps>
+
+### Manual installation from source
+
+For more control over the installation process, you can install manually.
+
+<Steps>
+  <Step title="Clone and prepare">
+    ```bash
+    git clone https://github.com/mdgaziur/findex.git
+    cd findex
+    rustup default stable
+    ```
+  </Step>
+
+  <Step title="Build Findex">
+    ```bash
+    cargo build --release
+    ```
+    
+    This will compile Findex with optimizations enabled. The binaries will be in `target/release/`.
+  </Step>
+
+  <Step title="Install binaries">
+    ```bash
+    sudo cp target/release/findex /usr/bin/
+    sudo cp target/release/findex-daemon /usr/bin/
+    ```
+  </Step>
+
+  <Step title="Install default CSS">
+    ```bash
+    sudo mkdir -p /opt/findex
+    sudo cp css/style.css /opt/findex/
+    ```
+  </Step>
+
+  <Step title="Setup systemd service (optional)">
+    If you use systemd:
+    ```bash
+    sudo install -Dm644 service/findex-daemon.service -t /usr/lib/systemd/user
+    systemctl daemon-reload --user
+    systemctl enable --user findex-daemon.service
+    systemctl start --user findex-daemon.service
+    ```
+  </Step>
+
+  <Step title="Alternative: Manual autostart">
+    If not using systemd, add `findex-daemon` to your desktop environment's autostart applications.
+  </Step>
+</Steps>
+
+### Installation from AUR
+
+For Arch Linux users, Findex is available in the AUR.
+
+<CodeGroup>
+  ```bash Install from AUR (git)
+  # Using yay
+  yay -S findex-git
+
+  # Using paru
+  paru -S findex-git
+  ```
+
+  ```bash Install prebuilt binary
+  # Using yay
+  yay -S findex-bin
+
+  # Using paru
+  paru -S findex-bin
+  ```
+</CodeGroup>
+
+After installation, add `findex-daemon` to your autostart applications:
+
+```bash
+systemctl enable --user findex-daemon.service
+systemctl start --user findex-daemon.service
+```
+
+## Window manager configuration
+
+### Hyprland
+
+If you're using Hyprland, add these configurations to `~/.config/hypr/hyprland.conf`:
+
+```bash
+# Findex
+exec-once = findex-daemon
+bind = $mod, space, exec, echo 1 > ~/.config/findex/toggle_file
+windowrulev2 = float, class:^(findex)$
+windowrulev2 = noanim, class:^(findex)$
+windowrulev2 = noborder, class:^(findex)$
+windowrulev2 = noshadow, class:^(findex)$
+```
+
+<Note>
+  Replace `$mod, space` with your preferred key combination.
+</Note>
+
+### Other window managers
+
+For other window managers or desktop environments:
+
+1. Add `findex-daemon` to autostart
+2. Bind your preferred hotkey to: `echo 1 > ~/.config/findex/toggle_file`
+
+## Wayland considerations
+
+<Warning>
+  Findex cannot bind global hotkeys directly on Wayland due to security restrictions.
+</Warning>
+
+On Wayland:
+- You must bind the toggle command through your window manager/compositor
+- Window decoration settings may not work as expected
+- The `toggle_key` setting in `settings.toml` will have no effect
+
+**Wayland hotkey binding**:
+```bash
+echo 1 > ~/.config/findex/toggle_file
+```
+
+Bind this command to your preferred keyboard shortcut using your compositor's configuration.
+
+## Verification
+
+To verify Findex is installed correctly:
+
+<Steps>
+  <Step title="Check daemon is running">
+    ```bash
+    ps aux | grep findex-daemon
+    ```
+  </Step>
+
+  <Step title="Test the toggle">
+    ```bash
+    echo 1 > ~/.config/findex/toggle_file
+    ```
+    
+    The Findex window should appear.
+  </Step>
+
+  <Step title="Check config files">
+    ```bash
+    ls ~/.config/findex/
+    ```
+    
+    You should see `settings.toml` and `style.css`.
+  </Step>
+</Steps>
+
+## Next steps
+
+Now that Findex is installed, check out the [Quick Start guide](/quickstart) to learn how to use and customize it.

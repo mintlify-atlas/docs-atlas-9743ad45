@@ -1,0 +1,400 @@
+---
+title: "Plugin Configuration"
+description: "Learn how to configure Findex plugins through settings.toml and access configuration in your plugin code"
+---
+
+## Overview
+
+Findex plugins can be configured through the `settings.toml` file located at `~/.config/findex/settings.toml`. This allows users to customize plugin behavior without modifying the plugin's code.
+
+## Configuration Format
+
+Plugins are configured in `settings.toml` using this format:
+
+```toml settings.toml
+PLUGIN_NAME = { path = "PLUGIN_PATH", prefix = "OPTIONAL_PREFIX", keyboard_shortcut = "OPTIONAL_SHORTCUT", config = {} }
+```
+
+## Configuration Fields
+
+<ParamField path="path" type="string" required>
+  Absolute path to the plugin's `.so` (shared object) file.
+  
+  ```toml
+  path = "/home/user/.config/findex/plugins/libmath.so"
+  path = "/opt/findex-plugins/libcmd.so"
+  ```
+</ParamField>
+
+<ParamField path="prefix" type="string">
+  Optional user-defined prefix that overrides the prefix specified in the plugin's code. This allows users to customize how they invoke the plugin.
+  
+  ```toml
+  # Use custom prefix instead of plugin's default
+  prefix = "calc!"
+  ```
+  
+  If not specified, the plugin's built-in prefix (from `define_plugin!` macro) will be used.
+</ParamField>
+
+<ParamField path="keyboard_shortcut" type="string">
+  Optional custom keyboard shortcut for triggering the plugin. Must be a valid GTK accelerator string.
+  
+  ```toml
+  keyboard_shortcut = "<Ctrl><Shift>c"
+  keyboard_shortcut = "<Alt>m"
+  keyboard_shortcut = "<Super>g"
+  ```
+  
+  When pressed, Findex inserts the plugin's prefix into the search box. This overrides any keyboard shortcut defined in the plugin's code.
+</ParamField>
+
+<ParamField path="config" type="table">
+  A table of plugin-specific configuration options. All keys and values must be strings. The plugin accesses these values through the `config` parameter in its `init` function.
+  
+  ```toml
+  config = { api_key = "abc123", server = "https://api.example.com", timeout = "30" }
+  ```
+</ParamField>
+
+## Configuration Examples
+
+### Basic Plugin Configuration
+
+Minimal configuration with just the path:
+
+```toml settings.toml
+math = { path = "/home/user/.config/findex/plugins/libmath.so" }
+```
+
+### Plugin with Custom Prefix
+
+Override the plugin's default prefix:
+
+```toml settings.toml
+cmd = { 
+    path = "/usr/lib/findex/libcmd.so",
+    prefix = "run!"
+}
+```
+
+### Plugin with Keyboard Shortcut
+
+Add a keyboard shortcut to quickly trigger the plugin:
+
+```toml settings.toml
+calculator = { 
+    path = "/opt/findex/libcalc.so",
+    prefix = "calc!",
+    keyboard_shortcut = "<Ctrl><Shift>c"
+}
+```
+
+### Plugin with Configuration
+
+Provide plugin-specific settings:
+
+```toml settings.toml
+github = { 
+    path = "/home/user/plugins/libgithub.so",
+    prefix = "gh!",
+    keyboard_shortcut = "<Ctrl><Shift>g",
+    config = { 
+        api_token = "ghp_yourtoken123",
+        default_org = "myorganization",
+        max_results = "10"
+    }
+}
+```
+
+### Multiple Plugins
+
+Configure multiple plugins in the same file:
+
+```toml settings.toml
+# Command runner plugin
+cmd = { 
+    path = "/usr/lib/findex/libcmd.so",
+    prefix = "cmd!",
+    keyboard_shortcut = "<Ctrl><Shift>c"
+}
+
+# Math calculator plugin  
+math = { 
+    path = "/usr/lib/findex/libmath.so",
+    prefix = "",
+    keyboard_shortcut = "<Ctrl><Shift>m"
+}
+
+# URL opener plugin
+url = { 
+    path = "/usr/lib/findex/liburlopen.so",
+    prefix = "open!",
+    config = { 
+        browser = "firefox",
+        new_window = "true"
+    }
+}
+```
+
+## Accessing Configuration in Plugin Code
+
+The configuration is passed to your plugin's `init` function as a `RHashMap<RString, RString>`:
+
+```rust src/lib.rs
+use abi_stable::std_types::*;
+use findex_plugin::{define_plugin, FResult};
+
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Access configuration values
+    let api_key = config.get(&RString::from("api_key"));
+    
+    if let Some(key) = api_key {
+        let key_string: String = key.clone().into();
+        println!("API Key: {}", key_string);
+    } else {
+        return RErr(RString::from("Missing required config: api_key"));
+    }
+    
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    // Query handling code...
+    RVec::new()
+}
+
+define_plugin!("api!", init, handle_query);
+```
+
+### Reading Required Configuration
+
+Validate required configuration and return errors:
+
+```rust
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Check for required fields
+    let api_key = config.get(&RString::from("api_key"))
+        .ok_or(RString::from("Missing required config field: api_key"))?;
+    
+    let server = config.get(&RString::from("server"))
+        .ok_or(RString::from("Missing required config field: server"))?;
+    
+    // Validate values
+    let api_key_str: String = api_key.clone().into();
+    if api_key_str.len() < 10 {
+        return RErr(RString::from("API key must be at least 10 characters"));
+    }
+    
+    ROk(())
+}
+```
+
+### Reading Optional Configuration with Defaults
+
+Provide default values for optional configuration:
+
+```rust
+use std::sync::OnceLock;
+
+static CONFIG: OnceLock<PluginConfig> = OnceLock::new();
+
+struct PluginConfig {
+    api_key: String,
+    timeout: u64,
+    max_results: usize,
+}
+
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Required field
+    let api_key = config.get(&RString::from("api_key"))
+        .ok_or(RString::from("Missing required config: api_key"))?;
+    
+    // Optional fields with defaults
+    let timeout = config.get(&RString::from("timeout"))
+        .map(|s| s.as_str().parse().unwrap_or(30))
+        .unwrap_or(30);
+    
+    let max_results = config.get(&RString::from("max_results"))
+        .map(|s| s.as_str().parse().unwrap_or(10))
+        .unwrap_or(10);
+    
+    // Store config for use in handle_query
+    CONFIG.set(PluginConfig {
+        api_key: api_key.clone().into(),
+        timeout,
+        max_results,
+    }).unwrap();
+    
+    ROk(())
+}
+```
+
+### Type Conversions
+
+All configuration values are strings. Convert them to other types as needed:
+
+```rust
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // String value (no conversion needed)
+    let name = config.get(&RString::from("name"))
+        .map(|s| s.as_str().to_string())
+        .unwrap_or_else(|| "default".to_string());
+    
+    // Integer value
+    let port: u16 = config.get(&RString::from("port"))
+        .and_then(|s| s.as_str().parse().ok())
+        .unwrap_or(8080);
+    
+    // Boolean value
+    let enabled: bool = config.get(&RString::from("enabled"))
+        .map(|s| s.as_str() == "true")
+        .unwrap_or(true);
+    
+    // List value (comma-separated)
+    let tags: Vec<String> = config.get(&RString::from("tags"))
+        .map(|s| s.as_str().split(',').map(|t| t.trim().to_string()).collect())
+        .unwrap_or_default();
+    
+    ROk(())
+}
+```
+
+## Special Configuration: highlight_color
+
+<Note>
+Findex automatically injects the `highlight_color` configuration value from the user's `settings.toml` into every plugin's config. This is the color used for highlighting matches in app names.
+
+You can access it like any other config value:
+
+```rust
+let highlight_color = config.get(&RString::from("highlight_color"));
+```
+
+The value is specified in the main Findex configuration:
+
+```toml settings.toml
+name_match_highlight_color = "#FF5733"
+```
+</Note>
+
+## Complete Configuration Example
+
+Here's a complete example showing plugin code and its corresponding configuration:
+
+### Plugin Code
+
+```rust src/lib.rs
+use abi_stable::std_types::*;
+use findex_plugin::{ApplicationCommand, define_plugin, FResult};
+use std::sync::OnceLock;
+
+static SEARCH_CONFIG: OnceLock<SearchConfig> = OnceLock::new();
+
+struct SearchConfig {
+    api_key: String,
+    max_results: usize,
+    include_descriptions: bool,
+}
+
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Validate and load configuration
+    let api_key = config.get(&RString::from("api_key"))
+        .ok_or(RString::from("Missing required config: api_key"))?;
+    
+    let max_results = config.get(&RString::from("max_results"))
+        .and_then(|s| s.as_str().parse().ok())
+        .unwrap_or(10);
+    
+    let include_descriptions = config.get(&RString::from("include_descriptions"))
+        .map(|s| s.as_str() == "true")
+        .unwrap_or(true);
+    
+    SEARCH_CONFIG.set(SearchConfig {
+        api_key: api_key.clone().into(),
+        max_results,
+        include_descriptions,
+    }).unwrap();
+    
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let search_config = SEARCH_CONFIG.get().unwrap();
+    
+    // Use configuration in search logic...
+    let results = vec![];
+    
+    RVec::from(results)
+}
+
+define_plugin!("search!", "<Ctrl><Shift>s", init, handle_query);
+```
+
+### User Configuration
+
+```toml ~/.config/findex/settings.toml
+# Other Findex settings...
+default_window_width = 800
+name_match_highlight_color = "#FF5733"
+
+# Plugin configuration
+search_plugin = { 
+    path = "/home/user/.config/findex/plugins/libsearch.so",
+    prefix = "s!",
+    keyboard_shortcut = "<Super>s",
+    config = { 
+        api_key = "your_api_key_here",
+        max_results = "20",
+        include_descriptions = "true"
+    }
+}
+```
+
+## Configuration Best Practices
+
+### For Plugin Developers
+
+1. **Document all configuration options** in your plugin's README
+2. **Use sensible defaults** for optional configuration
+3. **Validate configuration** in the `init` function
+4. **Return clear error messages** when configuration is invalid
+5. **Support common data types** through string parsing
+
+### For Plugin Users
+
+1. **Check plugin documentation** for required configuration
+2. **Use absolute paths** for the plugin's `.so` file
+3. **Test configuration changes** by restarting Findex
+4. **Keep sensitive data secure** (API keys, tokens, etc.)
+
+## Troubleshooting
+
+### Plugin Not Loading
+
+If your plugin isn't loading, check:
+
+- The `path` is correct and points to a valid `.so` file
+- The plugin file has execute permissions
+- Required configuration fields are present
+- Configuration values are valid (check Findex logs)
+
+### Configuration Not Working
+
+If configuration changes aren't taking effect:
+
+- Restart Findex (configuration is read at startup)
+- Check for syntax errors in `settings.toml`
+- Verify configuration keys match what the plugin expects
+- Check Findex logs at `~/.cache/findex-logs/` for errors
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Plugin Basics" icon="book" href="/api/plugin-basics">
+    Learn the fundamentals of plugin development
+  </Card>
+  <Card title="Plugin Macros" icon="code" href="/api/plugin-macros">
+    Explore the define_plugin! macro
+  </Card>
+</CardGroup>

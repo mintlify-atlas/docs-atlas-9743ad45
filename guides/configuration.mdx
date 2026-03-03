@@ -1,0 +1,292 @@
+---
+title: "Configuration"
+description: "Complete guide to Findex settings and configuration options"
+---
+
+Findex can be configured by modifying the `settings.toml` file located at `~/.config/findex/settings.toml`. If this file doesn't exist, Findex will automatically generate it with default values on first run.
+
+## Configuration File Location
+
+The configuration file is stored in your XDG config directory:
+- **Production**: `~/.config/findex/settings.toml`
+- **Development**: `./settings.toml` (in the project root)
+
+## Settings Overview
+
+All settings in `settings.toml` follow the TOML format. Below is a complete reference of all available configuration options grouped by category.
+
+---
+
+## Window Settings
+
+<ParamField path="default_window_width" type="integer" default="700">
+  Sets the default width of the Findex window in pixels.
+  
+  ```toml
+  default_window_width = 700
+  ```
+</ParamField>
+
+<ParamField path="min_content_height" type="integer" default="0">
+  Minimum content height for the results area in pixels. Set to 0 for no minimum.
+  
+  ```toml
+  min_content_height = 0
+  ```
+</ParamField>
+
+<ParamField path="max_content_height" type="integer" default="400">
+  Maximum content height for the results area in pixels. Results will scroll if they exceed this height.
+  
+  ```toml
+  max_content_height = 400
+  ```
+</ParamField>
+
+<ParamField path="decorate_window" type="boolean" default="false">
+  Show or hide the window toolbar/decorations (title bar, close button, etc.).
+  
+  ```toml
+  decorate_window = false
+  ```
+  
+  <Warning>This setting may not work properly on Wayland compositors.</Warning>
+</ParamField>
+
+<ParamField path="close_window_on_losing_focus" type="boolean" default="true">
+  Automatically close the Findex window when it loses focus (user clicks outside).
+  
+  ```toml
+  close_window_on_losing_focus = true
+  ```
+</ParamField>
+
+<ParamField path="on_monitor" type="integer" default="null">
+  The monitor that Findex should appear on (zero-indexed). If not set, Findex appears on the active monitor.
+  
+  ```toml
+  on_monitor = 0  # Primary monitor
+  # on_monitor = 1  # Secondary monitor
+  ```
+  
+  <Warning>This feature hasn't been thoroughly tested on Wayland. Contributions are welcome!</Warning>
+</ParamField>
+
+---
+
+## Appearance Settings
+
+<ParamField path="icon_size" type="integer" default="32">
+  Width and height of application icons in pixels.
+  
+  ```toml
+  icon_size = 32
+  ```
+</ParamField>
+
+<ParamField path="entry_icon" type="string" default="search">
+  Icon name displayed beside the search bar. Uses GTK icon theme names.
+  
+  ```toml
+  entry_icon = "search"
+  # entry_icon = "system-search"
+  # entry_icon = "edit-find"
+  ```
+</ParamField>
+
+<ParamField path="query_placeholder" type="string" default="Search for applications">
+  Placeholder text shown in the search input box when empty.
+  
+  ```toml
+  query_placeholder = "Search for applications"
+  ```
+</ParamField>
+
+<ParamField path="name_match_highlight_color" type="string" default="orange">
+  Color used to highlight matching characters in application names. Accepts CSS color values.
+  
+  ```toml
+  name_match_highlight_color = "orange"
+  # name_match_highlight_color = "#ff6600"
+  # name_match_highlight_color = "rgb(255, 102, 0)"
+  ```
+</ParamField>
+
+---
+
+## Search Settings
+
+<ParamField path="min_score" type="integer" default="5">
+  Minimum fuzzy match score required for an application to appear in results. Lower values show more results but may be less relevant.
+  
+  ```toml
+  min_score = 5
+  ```
+</ParamField>
+
+<ParamField path="result_size" type="integer" default="5">
+  Maximum number of applications to display in the results list.
+  
+  ```toml
+  result_size = 5
+  ```
+  
+  <Note>Results are limited to a maximum of 10 for keyboard shortcut support (Alt+1 through Alt+0).</Note>
+</ParamField>
+
+---
+
+## Keyboard Settings
+
+<ParamField path="toggle_key" type="string" default="<Shift>space">
+  Global keyboard shortcut to show/hide Findex. Uses GTK accelerator format.
+  
+  ```toml
+  toggle_key = "<Shift>space"
+  # toggle_key = "<Alt>space"
+  # toggle_key = "<Control><Alt>space"
+  ```
+  
+  <Warning>
+    This setting only works on X11. On Wayland, you must bind a keyboard shortcut through your compositor to run:
+    ```bash
+    echo 1 > ~/.config/findex/toggle_file
+    ```
+    See the [Wayland Setup Guide](/guides/wayland) for details.
+  </Warning>
+</ParamField>
+
+---
+
+## Plugin Configuration
+
+<ParamField path="plugins" type="table" default="{}">
+  Configuration for Findex plugins. Each plugin is defined as a table with the following properties.
+  
+  ```toml
+  [plugins.PLUGIN_NAME]
+  path = "/path/to/plugin.so"
+  prefix = "custom_prefix!"  # Optional
+  keyboard_shortcut = "<Ctrl><Shift>P"  # Optional
+  
+  [plugins.PLUGIN_NAME.config]
+  key1 = "value1"
+  key2 = "value2"
+  ```
+</ParamField>
+
+### Plugin Properties
+
+<ParamField path="plugins.*.path" type="string" required>
+  Path to the plugin's `.so` (shared object) file. Supports tilde expansion.
+  
+  ```toml
+  [plugins.math]
+  path = "~/.local/lib/findex/plugins/math.so"
+  ```
+</ParamField>
+
+<ParamField path="plugins.*.prefix" type="string">
+  Optional custom prefix that activates the plugin when typed in the search box. Overrides the plugin's default prefix.
+  
+  ```toml
+  [plugins.math]
+  path = "~/plugins/math.so"
+  prefix = "calc "
+  ```
+</ParamField>
+
+<ParamField path="plugins.*.keyboard_shortcut" type="string">
+  Optional keyboard shortcut to activate the plugin (inserts the prefix into the search box). Must be a valid GTK accelerator.
+  
+  ```toml
+  [plugins.github]
+  path = "~/plugins/github.so"
+  keyboard_shortcut = "<Ctrl><Shift>G"
+  ```
+</ParamField>
+
+<ParamField path="plugins.*.config" type="table" default="{}">
+  Plugin-specific configuration options. Refer to each plugin's documentation for available options.
+  
+  ```toml
+  [plugins.urlopen.config]
+  browser = "firefox"
+  highlight_color = "cyan"
+  ```
+  
+  <Note>
+    If `highlight_color` is not specified in a plugin's config, it will inherit the value from `name_match_highlight_color`.
+  </Note>
+</ParamField>
+
+---
+
+## Example Configuration
+
+<Accordion title="Complete settings.toml example">
+  ```toml
+  # Window Configuration
+  default_window_width = 800
+  min_content_height = 0
+  max_content_height = 450
+  decorate_window = false
+  close_window_on_losing_focus = true
+  on_monitor = 0
+  
+  # Appearance
+  icon_size = 32
+  entry_icon = "search"
+  query_placeholder = "Type to search..."
+  name_match_highlight_color = "#50ee50"
+  
+  # Search
+  min_score = 5
+  result_size = 8
+  
+  # Keyboard
+  toggle_key = "<Alt>space"
+  
+  # Plugins
+  [plugins.math]
+  path = "~/.local/lib/findex/plugins/math.so"
+  prefix = "= "
+  keyboard_shortcut = "<Ctrl><Shift>M"
+  
+  [plugins.math.config]
+  highlight_color = "cyan"
+  
+  [plugins.github]
+  path = "~/.local/lib/findex/plugins/github.so"
+  prefix = "gh "
+  
+  [plugins.github.config]
+  token = "ghp_your_token_here"
+  ```
+</Accordion>
+
+---
+
+## Troubleshooting
+
+<Accordion title="Configuration not taking effect">
+  1. Ensure the configuration file is valid TOML syntax
+  2. Restart `findex-daemon` after making changes:
+     ```bash
+     killall findex-daemon
+     findex-daemon &
+     ```
+  3. Check logs at `${XDG_CACHE_HOME}/findex-logs` (usually `~/.cache/findex-logs`)
+</Accordion>
+
+<Accordion title="Plugin configuration errors">
+  If a plugin fails to load or initialize:
+  - Verify the plugin path is correct and the `.so` file exists
+  - Check that the plugin is compatible with your Findex version
+  - Review the plugin's documentation for required config options
+  - Check error messages in `~/.cache/findex-logs`
+</Accordion>
+
+<Note>
+  After modifying `settings.toml`, you typically need to restart the Findex daemon for changes to take effect.
+</Note>

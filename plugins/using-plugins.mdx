@@ -1,0 +1,196 @@
+---
+title: Using Plugins
+description: How to install, configure, and use Findex plugins
+---
+
+This guide covers how to install plugins, configure them in your settings, and use them effectively in Findex.
+
+## Installing Plugins
+
+<Steps>
+  <Step title="Obtain the plugin">
+    Download a pre-compiled plugin (`.so` file) or compile it from source:
+    
+    ```bash
+    cd plugin-directory
+    cargo build --release
+    ```
+    
+    The compiled plugin will be in `target/release/` with a `.so` extension.
+  </Step>
+  
+  <Step title="Copy to a permanent location">
+    Move the `.so` file to a convenient location:
+    
+    ```bash
+    mkdir -p ~/.config/findex/plugins
+    cp target/release/libplugin_name.so ~/.config/findex/plugins/
+    ```
+  </Step>
+  
+  <Step title="Configure in settings.toml">
+    Add the plugin configuration to `~/.config/findex/settings.toml`:
+    
+    ```toml
+    [plugins.my_plugin]
+    path = "~/.config/findex/plugins/libplugin_name.so"
+    ```
+  </Step>
+  
+  <Step title="Restart Findex">
+    Restart the Findex daemon to load the plugin:
+    
+    ```bash
+    killall findex-daemon
+    findex-daemon &
+    ```
+  </Step>
+</Steps>
+
+<Note>
+Plugins are loaded during Findex startup. You must restart the daemon after adding or modifying plugin configurations.
+</Note>
+
+## Configuration Options
+
+### Basic Configuration
+
+The minimal plugin configuration requires only the path:
+
+```toml
+[plugins.urlopen]
+path = "~/.config/findex/plugins/liburlopen.so"
+```
+
+### Custom Prefix
+
+Override the plugin's default prefix:
+
+```toml
+[plugins.urlopen]
+path = "~/.config/findex/plugins/liburlopen.so"
+prefix = "open!"
+```
+
+Now you can use `open!https://example.com` instead of the default `url!https://example.com`.
+
+### Keyboard Shortcuts
+
+Add a keyboard shortcut to quickly insert the plugin's prefix:
+
+```toml
+[plugins.cmd]
+path = "~/.config/findex/plugins/libcmd.so"
+keyboard_shortcut = "<Ctrl><Shift>C"
+```
+
+Pressing `Ctrl+Shift+C` will open Findex with `cmd!` already typed in the search box.
+
+<Note>
+Keyboard shortcuts must be valid GTK accelerators. Common modifiers: `<Ctrl>`, `<Shift>`, `<Alt>`, `<Super>`.
+</Note>
+
+### Plugin-Specific Configuration
+
+Some plugins accept custom configuration parameters:
+
+```toml
+[plugins.my_plugin]
+path = "~/.config/findex/plugins/libmy_plugin.so"
+
+[plugins.my_plugin.config]
+api_key = "your-api-key"
+timeout = "30"
+max_results = "10"
+```
+
+<Warning>
+All configuration values are strings. Plugin developers should parse them to the appropriate types.
+</Warning>
+
+## Complete Example
+
+Here's a complete `settings.toml` with multiple plugins configured:
+
+```toml
+default_window_width = 700
+min_content_height = 0
+max_content_height = 400
+result_size = 5
+
+[plugins.urlopen]
+path = "~/.config/findex/plugins/liburlopen.so"
+
+[plugins.github]
+path = "~/.config/findex/plugins/libgithub_repo.so"
+prefix = "gh!"
+
+[plugins.cmd]
+path = "~/.config/findex/plugins/libcmd.so"
+keyboard_shortcut = "<Ctrl><Shift>C"
+
+[plugins.math]
+path = "~/.config/findex/plugins/libmath.so"
+```
+
+## Using Plugins
+
+### Prefix-Based Activation
+
+Type the plugin's prefix in the Findex search box:
+
+1. Open Findex (default: `Shift+Space`)
+2. Type the prefix: `url!`
+3. Type your query: `url!https://github.com`
+4. Press Enter to execute
+
+### Keyboard Shortcuts
+
+If configured, use the keyboard shortcut to activate the plugin:
+
+1. Press the shortcut (e.g., `Ctrl+Shift+C`)
+2. Findex opens with the prefix already entered
+3. Type your query immediately
+4. Press Enter to execute
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Plugin not loading">
+    Check the following:
+    
+    - Verify the path to the `.so` file is correct
+    - Ensure you've restarted the Findex daemon
+    - Check `~/.cache/findex-logs` for error messages
+    - Confirm the plugin is compatible with your Findex version
+  </Accordion>
+  
+  <Accordion title="Keyboard shortcut not working">
+    - Ensure the shortcut syntax is a valid GTK accelerator
+    - Check for conflicts with other application shortcuts
+    - On Wayland, some shortcuts may not work due to compositor limitations
+  </Accordion>
+  
+  <Accordion title="Configuration not applied">
+    - Verify TOML syntax is correct (use a TOML validator)
+    - Ensure proper indentation and structure
+    - Restart Findex daemon after configuration changes
+    - Check plugin documentation for required configuration keys
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Always download plugins from trusted sources. Plugins have full access to your system when executed.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Available Plugins" icon="plug" href="/plugins/available-plugins">
+    Explore built-in plugins included with Findex
+  </Card>
+  
+  <Card title="Developing Plugins" icon="code" href="/plugins/developing-plugins">
+    Learn how to create your own plugins
+  </Card>
+</CardGroup>

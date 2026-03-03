@@ -1,0 +1,316 @@
+---
+title: "Keyboard Shortcuts"
+description: "Configure and use keyboard shortcuts in Findex"
+---
+
+Findex provides several types of keyboard shortcuts to improve your workflow: global toggle shortcuts, result selection shortcuts, and plugin activation shortcuts.
+
+## Global Toggle Shortcut
+
+The primary keyboard shortcut for Findex is the **toggle key**, which shows or hides the application window.
+
+### Configuration
+
+Set the toggle key in `~/.config/findex/settings.toml`:
+
+```toml
+toggle_key = "<Shift>space"
+```
+
+### Accelerator Format
+
+Findex uses GTK accelerator syntax for keyboard shortcuts. The format is:
+
+```
+<Modifier1><Modifier2>key
+```
+
+**Available modifiers:**
+- `<Shift>` - Shift key
+- `<Control>` or `<Ctrl>` - Control key
+- `<Alt>` - Alt key
+- `<Super>` - Super/Windows/Command key
+- `<Meta>` - Meta key
+
+**Examples:**
+```toml
+toggle_key = "<Alt>space"          # Alt + Space
+toggle_key = "<Control><Alt>f"     # Ctrl + Alt + F
+toggle_key = "<Super>Return"       # Super + Enter
+toggle_key = "<Shift><Control>p"   # Shift + Ctrl + P
+```
+
+### X11 vs Wayland Differences
+
+<Warning>
+  **Wayland Limitation**: The `toggle_key` setting only works on X11. Wayland does not allow applications to register global keyboard shortcuts for security reasons.
+</Warning>
+
+<Tabs>
+  <Tab title="X11">
+    On X11, Findex can directly bind the global hotkey specified in `toggle_key`:
+    
+    ```toml
+    toggle_key = "<Alt>space"
+    ```
+    
+    The shortcut will work system-wide immediately after configuring and restarting `findex-daemon`.
+  </Tab>
+  
+  <Tab title="Wayland">
+    On Wayland, you must configure the keyboard shortcut through your compositor/window manager.
+    
+    **The shortcut should execute:**
+    ```bash
+    echo 1 > ~/.config/findex/toggle_file
+    ```
+    
+    Findex monitors this file and toggles the window when it detects changes.
+    
+    See the [Wayland Setup Guide](/guides/wayland) for compositor-specific instructions.
+  </Tab>
+</Tabs>
+
+---
+
+## Result Selection Shortcuts
+
+Findex automatically assigns keyboard shortcuts to the first 10 search results, allowing you to quickly launch applications without using the mouse.
+
+### Available Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Alt+1` | Launch 1st result |
+| `Alt+2` | Launch 2nd result |
+| `Alt+3` | Launch 3rd result |
+| `Alt+4` | Launch 4th result |
+| `Alt+5` | Launch 5th result |
+| `Alt+6` | Launch 6th result |
+| `Alt+7` | Launch 7th result |
+| `Alt+8` | Launch 8th result |
+| `Alt+9` | Launch 9th result |
+| `Alt+0` | Launch 10th result |
+
+<Note>
+  These shortcuts are hardcoded and cannot be customized. The number of available shortcuts is why results are capped at 10 maximum.
+</Note>
+
+### Configuration
+
+Control how many results show shortcuts using the `result_size` setting:
+
+```toml
+result_size = 5  # Shows Alt+1 through Alt+5
+```
+
+While you can configure up to 10 results, fewer results may provide a cleaner interface.
+
+### Visual Indicators
+
+The keyboard shortcut for each result is displayed on the right side of the result row. You can customize its appearance with CSS:
+
+```css
+.findex-result-trigger-shortcut {
+    padding-right: 20px;
+    color: #00ff00;
+    font-weight: bold;
+    font-size: 14px;
+}
+```
+
+Or hide them entirely:
+
+```css
+.findex-result-trigger-shortcut {
+    display: none;
+}
+```
+
+---
+
+## Plugin Keyboard Shortcuts
+
+Plugins can define custom keyboard shortcuts that insert the plugin's prefix into the search box, providing quick access to plugin functionality.
+
+### Plugin-Defined Shortcuts
+
+Some plugins include default keyboard shortcuts. For example, a plugin might define:
+
+```rust
+define_plugin!("calc ", "<Ctrl><Shift>M", init, handle_query);
+```
+
+This sets `Ctrl+Shift+M` as the default shortcut to activate the calculator plugin.
+
+### User-Configured Shortcuts
+
+You can override or add keyboard shortcuts for any plugin in `settings.toml`:
+
+```toml
+[plugins.math]
+path = "~/.local/lib/findex/plugins/math.so"
+prefix = "= "
+keyboard_shortcut = "<Control><Shift>C"
+```
+
+When you press the shortcut, Findex will:
+1. Open the Findex window (if closed)
+2. Insert the plugin's prefix into the search box
+3. Set focus to the search box for immediate typing
+
+### Example Configurations
+
+<Tabs>
+  <Tab title="Math Plugin">
+    ```toml
+    [plugins.math]
+    path = "~/.local/lib/findex/plugins/math.so"
+    prefix = "= "
+    keyboard_shortcut = "<Super>equal"
+    ```
+    
+    Press `Super+=` to activate calculator mode.
+  </Tab>
+  
+  <Tab title="GitHub Plugin">
+    ```toml
+    [plugins.github]
+    path = "~/.local/lib/findex/plugins/github.so"
+    prefix = "gh "
+    keyboard_shortcut = "<Control><Alt>G"
+    
+    [plugins.github.config]
+    token = "ghp_your_token"
+    ```
+    
+    Press `Ctrl+Alt+G` to search GitHub repositories.
+  </Tab>
+  
+  <Tab title="URL Opener">
+    ```toml
+    [plugins.urlopen]
+    path = "~/.local/lib/findex/plugins/urlopen.so"
+    prefix = "url "
+    keyboard_shortcut = "<Control><Shift>U"
+    
+    [plugins.urlopen.config]
+    browser = "firefox"
+    ```
+    
+    Press `Ctrl+Shift+U` to open URLs.
+  </Tab>
+  
+  <Tab title="Command Runner">
+    ```toml
+    [plugins.cmd]
+    path = "~/.local/lib/findex/plugins/cmd.so"
+    prefix = "$ "
+    keyboard_shortcut = "<Control><Alt>T"
+    ```
+    
+    Press `Ctrl+Alt+T` to run terminal commands.
+  </Tab>
+</Tabs>
+
+<Note>
+  **Wayland Note**: Like the global toggle shortcut, plugin keyboard shortcuts also only work on X11. On Wayland, you'll need to type the plugin prefix manually or configure compositor shortcuts.
+</Note>
+
+---
+
+## Navigation Shortcuts
+
+While using Findex, these standard navigation keys work:
+
+| Key | Action |
+|-----|--------|
+| `Up` / `Down` | Navigate through results |
+| `Enter` | Launch selected result |
+| `Escape` | Close Findex window |
+| `Tab` | (Typically moves focus, behavior depends on GTK) |
+
+---
+
+## Best Practices
+
+<Accordion title="Choose memorable shortcuts">
+  Use shortcuts that make sense mnemonically:
+  - Math plugin: `<Super>equal` or `<Ctrl><Shift>M`
+  - GitHub plugin: `<Ctrl><Shift>G`
+  - Command plugin: `<Ctrl><Alt>T` (like terminal)
+</Accordion>
+
+<Accordion title="Avoid conflicts">
+  Check that your shortcuts don't conflict with:
+  - System shortcuts (screenshot tools, workspace switching)
+  - Desktop environment shortcuts
+  - Frequently-used application shortcuts
+  - Other Findex plugin shortcuts
+</Accordion>
+
+<Accordion title="Keep result_size manageable">
+  While 10 results are possible, 5-6 results often provide the best balance:
+  ```toml
+  result_size = 6
+  ```
+  
+  This limits the number of shortcuts you need to remember while still showing relevant results.
+</Accordion>
+
+<Accordion title="Document your shortcuts">
+  Keep a reference of your custom shortcuts, especially if you configure many plugins:
+  
+  ```toml
+  # My Findex Shortcuts:
+  # Alt+Space: Toggle Findex
+  # Ctrl+Shift+M: Math calculator
+  # Ctrl+Shift+G: GitHub search
+  # Ctrl+Alt+T: Terminal commands
+  ```
+</Accordion>
+
+---
+
+## Troubleshooting
+
+<Accordion title="Toggle shortcut not working">
+  **On X11:**
+  1. Verify the accelerator syntax is correct
+  2. Check for conflicts with other applications
+  3. Restart `findex-daemon`:
+     ```bash
+     killall findex-daemon && findex-daemon &
+     ```
+  4. Try a different key combination
+  
+  **On Wayland:**
+  1. The `toggle_key` setting is ignored on Wayland
+  2. Configure shortcuts through your compositor
+  3. See [Wayland Setup Guide](/guides/wayland)
+</Accordion>
+
+<Accordion title="Plugin shortcut not working">
+  1. Verify the plugin is loaded correctly (check logs)
+  2. Ensure the shortcut doesn't conflict with system shortcuts
+  3. Try testing with a simple shortcut like `<Control><Shift>F1`
+  4. Check the plugin configuration syntax in `settings.toml`
+  5. On Wayland, plugin shortcuts won't work (use prefixes instead)
+</Accordion>
+
+<Accordion title="Result shortcuts (Alt+1-0) not working">
+  These shortcuts should work on both X11 and Wayland since they're active only when Findex has focus.
+  
+  If they don't work:
+  1. Ensure the Findex window has keyboard focus
+  2. Check for compositor-specific Alt key behavior
+  3. Try clicking inside the Findex window first
+</Accordion>
+
+---
+
+## Further Reading
+
+- [Wayland Setup Guide](/guides/wayland) - Configure shortcuts on Wayland
+- [Configuration Guide](/guides/configuration) - Configure plugin settings
+- [GTK Accelerator Syntax](https://docs.gtk.org/gtk3/func.accelerator_parse.html) - Official GTK documentation

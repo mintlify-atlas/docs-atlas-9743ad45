@@ -1,0 +1,422 @@
+---
+title: "Wayland Setup"
+description: "Configure Findex on Wayland compositors and understand limitations"
+---
+
+Findex works on Wayland, but with some limitations due to Wayland's security model. This guide covers setup instructions for various compositors and workarounds for Wayland-specific issues.
+
+## Wayland Limitations
+
+<Warning>
+  Wayland restricts certain features that work on X11 for security and isolation reasons.
+</Warning>
+
+### Hotkey Binding
+
+**Issue**: Applications cannot register global keyboard shortcuts in Wayland.
+
+**Impact**: The `toggle_key` setting in `settings.toml` is ignored.
+
+**Workaround**: Configure keyboard shortcuts through your Wayland compositor to execute:
+```bash
+echo 1 > ~/.config/findex/toggle_file
+```
+
+Findex monitors this file and toggles the window when changes are detected.
+
+### Window Decorations
+
+**Issue**: Some Wayland compositors may not respect window decoration preferences.
+
+**Impact**: The `decorate_window` setting may not work as expected.
+
+**Current Status**: Behavior varies by compositor. Testing and contributions welcome.
+
+### Multi-Monitor Support
+
+**Issue**: The `on_monitor` setting hasn't been thoroughly tested on Wayland.
+
+**Impact**: Findex may not appear on the specified monitor.
+
+**Current Status**: Needs testing. Contributions are welcome.
+
+---
+
+## Compositor-Specific Setup
+
+<Tabs>
+  <Tab title="Hyprland">
+    ### Hyprland Configuration
+    
+    Add the following to your `~/.config/hypr/hyprland.conf`:
+    
+    ```conf
+    # Start Findex daemon on login
+    exec-once = findex-daemon
+    
+    # Bind Super+Space to toggle Findex
+    bind = $mod, space, exec, echo 1 > ~/.config/findex/toggle_file
+    
+    # Window rules for Findex
+    windowrulev2 = float, class:^(findex)$
+    windowrulev2 = noanim, class:^(findex)$
+    windowrulev2 = noborder, class:^(findex)$
+    windowrulev2 = noshadow, class:^(findex)$
+    ```
+    
+    **Explanation:**
+    - `exec-once`: Starts the Findex daemon when Hyprland launches
+    - `bind`: Creates a keyboard shortcut (modify `$mod` and `space` as desired)
+    - `windowrulev2`: Configures Findex window behavior for a cleaner look
+    
+    **Alternative keybinds:**
+    ```conf
+    bind = ALT, space, exec, echo 1 > ~/.config/findex/toggle_file
+    bind = SUPER_SHIFT, space, exec, echo 1 > ~/.config/findex/toggle_file
+    ```
+    
+    **Reload configuration:**
+    ```bash
+    hyprctl reload
+    ```
+  </Tab>
+  
+  <Tab title="Sway">
+    ### Sway Configuration
+    
+    Add the following to your `~/.config/sway/config`:
+    
+    ```conf
+    # Start Findex daemon on login
+    exec findex-daemon
+    
+    # Bind Mod+Space to toggle Findex
+    bindsym $mod+space exec echo 1 > ~/.config/findex/toggle_file
+    
+    # Window rules for Findex
+    for_window [app_id="findex"] floating enable
+    for_window [app_id="findex"] border none
+    for_window [app_id="findex"] sticky enable
+    ```
+    
+    **Reload configuration:**
+    ```bash
+    swaymsg reload
+    ```
+  </Tab>
+  
+  <Tab title="GNOME (Mutter)">
+    ### GNOME Shell Configuration
+    
+    GNOME doesn't use text config files for custom shortcuts. Use `gsettings` or GNOME Settings:
+    
+    **Using GNOME Settings GUI:**
+    1. Open Settings → Keyboard → Keyboard Shortcuts
+    2. Scroll to "Custom Shortcuts"
+    3. Click "+" to add a new shortcut
+    4. Name: "Toggle Findex"
+    5. Command: `sh -c 'echo 1 > ~/.config/findex/toggle_file'`
+    6. Click "Set Shortcut" and press your desired key combination
+    
+    **Using gsettings (command line):**
+    ```bash
+    # Set the command
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name 'Toggle Findex'
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ command "sh -c 'echo 1 > ~/.config/findex/toggle_file'"
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ binding '<Super>space'
+    
+    # Register the custom keybinding
+    gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']"
+    ```
+    
+    **Autostart Findex daemon:**
+    
+    Create `~/.config/autostart/findex-daemon.desktop`:
+    ```desktop
+    [Desktop Entry]
+    Type=Application
+    Name=Findex Daemon
+    Exec=findex-daemon
+    X-GNOME-Autostart-enabled=true
+    ```
+  </Tab>
+  
+  <Tab title="KDE Plasma (KWin)">
+    ### KDE Plasma Configuration
+    
+    **Using System Settings GUI:**
+    1. Open System Settings → Shortcuts → Custom Shortcuts
+    2. Right-click → New → Global Shortcut → Command/URL
+    3. Name: "Toggle Findex"
+    4. In the "Trigger" tab, set your desired shortcut
+    5. In the "Action" tab, set:
+       - Command/URL: `sh -c 'echo 1 > ~/.config/findex/toggle_file'`
+    6. Apply changes
+    
+    **Autostart Findex daemon:**
+    1. System Settings → Startup and Shutdown → Autostart
+    2. Click "Add" → "Add Application"
+    3. Enter command: `findex-daemon`
+    4. Apply changes
+    
+    **Alternative: Using kwriteconfig5:**
+    ```bash
+    # Create custom shortcut (adjust path if needed)
+    kwriteconfig5 --file ~/.config/kglobalshortcutsrc \
+      --group 'findex-toggle' \
+      --key 'Toggle Findex' \
+      'Meta+Space,none,Toggle Findex'
+    ```
+  </Tab>
+  
+  <Tab title="Wayfire">
+    ### Wayfire Configuration
+    
+    Add to your `~/.config/wayfire.ini`:
+    
+    ```ini
+    [autostart]
+    findex-daemon = findex-daemon
+    
+    [command]
+    binding_toggle_findex = <super> KEY_SPACE
+    command_toggle_findex = sh -c 'echo 1 > ~/.config/findex/toggle_file'
+    ```
+    
+    **Reload configuration:**
+    ```bash
+    killall -SIGUSR2 wayfire
+    ```
+  </Tab>
+  
+  <Tab title="River">
+    ### River Configuration
+    
+    Add to your `~/.config/river/init` (make sure it's executable):
+    
+    ```bash
+    #!/bin/bash
+    
+    # Start Findex daemon
+    findex-daemon &
+    
+    # Bind Super+Space to toggle Findex
+    riverctl map normal Super Space spawn "sh -c 'echo 1 > ~/.config/findex/toggle_file'"
+    
+    # Window rules for Findex
+    riverctl rule-add -app-id 'findex' float
+    riverctl rule-add -app-id 'findex' dimensions 800 600
+    ```
+    
+    **Make the init script executable:**
+    ```bash
+    chmod +x ~/.config/river/init
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Toggle File Mechanism
+
+The `toggle_file` workaround is how Findex handles keyboard shortcuts on Wayland.
+
+### How It Works
+
+1. **File monitoring**: `findex-daemon` watches `~/.config/findex/toggle_file`
+2. **Trigger**: When the file is modified, Findex toggles the window
+3. **Compositor binding**: Your compositor executes `echo 1 > ~/.config/findex/toggle_file` when you press the shortcut
+
+### Manual Testing
+
+You can test the toggle mechanism manually:
+
+```bash
+# Toggle Findex window
+echo 1 > ~/.config/findex/toggle_file
+
+# Or use this shorter form
+: > ~/.config/findex/toggle_file
+```
+
+### Creating Helper Scripts
+
+For convenience, you can create a toggle script:
+
+```bash
+# Create script
+cat > ~/.local/bin/findex-toggle << 'EOF'
+#!/bin/bash
+echo 1 > ~/.config/findex/toggle_file
+EOF
+
+# Make executable
+chmod +x ~/.local/bin/findex-toggle
+```
+
+Then bind the script in your compositor:
+```conf
+bind = $mod, space, exec, findex-toggle
+```
+
+---
+
+## Troubleshooting
+
+<Accordion title="Findex not toggling on Wayland">
+  1. **Check daemon is running:**
+     ```bash
+     ps aux | grep findex-daemon
+     ```
+  
+  2. **Test toggle file manually:**
+     ```bash
+     echo 1 > ~/.config/findex/toggle_file
+     ```
+     If this doesn't work, the daemon may not be running or there's a configuration issue.
+  
+  3. **Verify file path:**
+     ```bash
+     ls -la ~/.config/findex/toggle_file
+     ```
+     The file should exist (created automatically by Findex).
+  
+  4. **Check compositor config:**
+     - Verify your keyboard shortcut is correctly configured
+     - Test the command directly from a terminal
+     - Check for syntax errors in config files
+  
+  5. **Review logs:**
+     ```bash
+     cat ~/.cache/findex-logs
+     ```
+</Accordion>
+
+<Accordion title="Window decorations not hiding">
+  The `decorate_window` setting may not work on some Wayland compositors.
+  
+  **Workarounds:**
+  
+  1. Use compositor-specific window rules (see examples above)
+  2. Some compositors support server-side decorations (SSD) settings
+  3. Set window rules to remove borders:
+     ```conf
+     # Hyprland
+     windowrulev2 = noborder, class:^(findex)$
+     
+     # Sway
+     for_window [app_id="findex"] border none
+     ```
+</Accordion>
+
+<Accordion title="Findex appears on wrong monitor">
+  The `on_monitor` setting hasn't been fully tested on Wayland.
+  
+  **Workarounds:**
+  
+  1. Use compositor-specific monitor rules:
+     ```conf
+     # Hyprland
+     windowrulev2 = monitor 0, class:^(findex)$
+     
+     # Sway
+     for_window [app_id="findex"] move to output DP-1
+     ```
+  
+  2. Some compositors support workspace-specific spawning
+  
+  3. Consider opening an issue if this is critical for your workflow
+</Accordion>
+
+<Accordion title="Daemon not starting on login">
+  1. **Check autostart configuration:**
+     - Verify the autostart method for your compositor
+     - Ensure paths are correct
+     - Check for typos in config files
+  
+  2. **Test daemon manually:**
+     ```bash
+     findex-daemon
+     ```
+     Check for error messages.
+  
+  3. **Verify installation:**
+     ```bash
+     which findex-daemon
+     ```
+  
+  4. **Check compositor logs:**
+     Most compositors log autostart failures.
+</Accordion>
+
+<Accordion title="Keyboard shortcut conflicts">
+  If your shortcut doesn't work:
+  
+  1. Choose a different key combination
+  2. Check existing shortcuts:
+     ```bash
+     # For Sway
+     swaymsg -t get_binding_modes
+     ```
+  
+  3. Common conflicting shortcuts:
+     - Super+Space (sometimes used for input method switching)
+     - Alt+Space (window menu in some compositors)
+  
+  4. Recommended alternatives:
+     - `<Super><Shift>space`
+     - `<Alt><Ctrl>space`
+     - `<Super>f` (for "find")
+</Accordion>
+
+---
+
+## Performance on Wayland
+
+<Note>
+  Findex generally performs well on Wayland. The toggle file mechanism adds minimal overhead (< 1ms latency in most cases).
+</Note>
+
+### Optimization Tips
+
+1. **Use compositor window rules** for faster window appearance:
+   ```conf
+   windowrulev2 = noanim, class:^(findex)$  # Hyprland
+   for_window [app_id="findex"] inhibit_idle visible  # Sway
+   ```
+
+2. **Keep daemon running** rather than starting Findex on-demand
+
+3. **Minimize plugin count** for faster startup
+
+---
+
+## Contributing Wayland Support
+
+Wayland support is evolving. Contributions are welcome for:
+
+- Testing `on_monitor` behavior across compositors
+- Improving window decoration handling
+- Documenting setup for additional compositors (Qtile, DWL, etc.)
+- Performance optimizations
+
+**How to contribute:**
+
+1. Test Findex on your Wayland compositor
+2. Document any issues or workarounds
+3. Submit issues or pull requests to the [Findex repository](https://github.com/mdgaziur/findex)
+4. Share your compositor configuration examples
+
+---
+
+## Further Reading
+
+- [Keyboard Shortcuts Guide](/guides/keyboard-shortcuts) - Learn about other shortcuts
+- [Configuration Guide](/guides/configuration) - Full settings reference
+- [Wayland Security Model](https://wayland.freedesktop.org/docs/html/ch04.html) - Why some features are restricted
+
+---
+
+<Note>
+  **Remember**: The `toggle_key` setting in `settings.toml` is ignored on Wayland. Always configure shortcuts through your compositor.
+</Note>

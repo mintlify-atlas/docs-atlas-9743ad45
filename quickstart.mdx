@@ -1,80 +1,305 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick start
+description: Get started with Findex in minutes - launch applications, customize appearance, and configure basic settings
 ---
 
-## Get started in three steps
+# Quick start
 
-Get your documentation site running locally and make your first customization.
+This guide will get you up and running with Findex quickly. You'll learn how to launch applications, customize the appearance, and configure basic settings.
 
-### Step 1: Set up your local environment
+<Info>
+  Make sure you've completed the [installation](/installation) before proceeding.
+</Info>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+## Launching Findex
+
+<Steps>
+  <Step title="Trigger Findex">
+    Use your configured keyboard shortcut or run:
+    ```bash
+    echo 1 > ~/.config/findex/toggle_file
+    ```
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    The Findex window will appear on your screen.
+  </Step>
+
+  <Step title="Search for an application">
+    Start typing the name of an application. Findex uses fuzzy search, so you don't need to type the exact name.
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    For example, typing `ffox` will match "Firefox".
+  </Step>
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+  <Step title="Launch an application">
+    Press `Enter` to launch the selected application, or use number keys (`1-9, 0`) to launch one of the first 10 results directly.
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    - `Enter`: Launch the highlighted result
+    - `1`: Launch the first result
+    - `2`: Launch the second result
+    - And so on...
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Basic usage
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+### Fuzzy search
 
-### Step 3: Go live
+Findex uses intelligent fuzzy matching to find applications:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+- **Partial matches**: `chr` matches "Google Chrome"
+- **Out of order**: `fldr` matches "File Roller"
+- **Abbreviations**: `gmp` matches "GNOME Music Player"
+
+### Keyboard navigation
+
+- `Up/Down arrows`: Navigate through results
+- `Enter`: Launch selected application
+- `Esc`: Close Findex
+- `1-9, 0`: Launch the corresponding result directly
+
+### Window behavior
+
+By default, Findex closes when:
+- You launch an application
+- You press `Esc`
+- The window loses focus (configurable)
+
+## Customization
+
+One of Findex's strengths is its deep customization options. Let's explore basic customization.
+
+### Configuration files
+
+On first run, Findex creates two configuration files in `~/.config/findex/`:
+
+- `settings.toml`: Behavioral settings
+- `style.css`: Visual styling
+
+### Customizing appearance with CSS
+
+<Steps>
+  <Step title="Open the style file">
+    ```bash
+    nano ~/.config/findex/style.css
+    ```
+    
+    Or use your preferred text editor.
+  </Step>
+
+  <Step title="Customize CSS classes">
+    Findex exposes several CSS classes for styling. Here's a simple example to change the window background and text colors:
+    
+    ```css
+    /* Main window background */
+    .findex-window {
+      background-color: #1e1e2e;
+    }
+
+    /* Search box */
+    .findex-query {
+      background-color: #313244;
+      color: #cdd6f4;
+      font-size: 18px;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    /* Results container */
+    .findex-results {
+      background-color: #1e1e2e;
+    }
+
+    /* Individual result row */
+    .findex-result-row {
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .findex-result-row:selected {
+      background-color: #45475a;
+    }
+
+    /* Application name */
+    .findex-result-app-name {
+      color: #cdd6f4;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    /* Application description */
+    .findex-result-app-description {
+      color: #9399b2;
+      font-size: 12px;
+    }
+    ```
+  </Step>
+
+  <Step title="Reload Findex">
+    Changes take effect immediately. Close and reopen Findex to see your changes:
+    ```bash
+    echo 1 > ~/.config/findex/toggle_file
+    ```
+  </Step>
+</Steps>
+
+### Available CSS classes
+
+Findex provides these CSS classes for customization:
+
+| CSS Class | Element |
+|-----------|----------|
+| `.findex-window` | Top level window |
+| `.findex-container` | Top level container |
+| `.findex-query` | Search input box |
+| `.findex-query-container` | Search box container |
+| `.findex-results-scroll` | Scrollable results container |
+| `.findex-results` | Results listbox |
+| `.findex-result-row` | Individual result row |
+| `.findex-result-icon` | Application icon |
+| `.findex-result-icon-container` | Icon container |
+| `.findex-result-app-name` | Application name |
+| `.findex-result-app-description` | Application description |
+| `.findex-result-app-command` | Application command |
+| `.findex-result-trigger-shortcut` | Keyboard shortcut indicator |
+| `.findex-result-info-container` | Result info container |
+
+### Configuring behavior
+
+<Steps>
+  <Step title="Open settings file">
+    ```bash
+    nano ~/.config/findex/settings.toml
+    ```
+  </Step>
+
+  <Step title="Common settings">
+    Here are some useful settings you can configure:
+    
+    ```toml
+    # Window appearance
+    default_window_width = 600
+    min_content_height = 400
+    max_content_height = 600
+    decorate_window = false
+    icon_size = 48
+
+    # Search behavior
+    result_size = 10
+    min_score = 50
+    name_match_highlight_color = "#89b4fa"
+
+    # Window behavior
+    close_window_on_losing_focus = true
+    query_placeholder = "Search applications..."
+    entry_icon = "search"
+
+    # Keyboard shortcut (X11 only)
+    toggle_key = "<Alt>space"
+
+    # Monitor selection (zero-indexed)
+    on_monitor = 0
+    ```
+  </Step>
+
+  <Step title="Save and reload">
+    Save the file. The daemon will automatically reload the configuration. Close and reopen Findex to see changes.
+  </Step>
+</Steps>
+
+### Key settings explained
+
+- `result_size`: Maximum number of search results to display
+- `min_score`: Minimum fuzzy match score (0-100) for results to appear
+- `close_window_on_losing_focus`: Whether Findex closes when clicking outside
+- `toggle_key`: Global hotkey to show/hide Findex (X11 only)
+- `decorate_window`: Show window title bar and decorations
+
+## Using plugins
+
+Findex supports plugins to extend functionality. Here's how to use a plugin:
+
+<Steps>
+  <Step title="Get a plugin">
+    Download or build a Findex plugin. Plugins are `.so` files compiled from Rust.
+    
+    Example plugins available in the Findex repository:
+    - URL opener
+    - GitHub repository search
+    - Command executor
+    - Calculator
+  </Step>
+
+  <Step title="Configure the plugin">
+    Add the plugin to your `settings.toml`:
+    
+    ```toml
+    [plugins.calculator]
+    path = "/path/to/plugin.so"
+    prefix = "calc!"
+    keyboard_shortcut = "<Ctrl><Shift>C"
+    config = {}
+    ```
+  </Step>
+
+  <Step title="Use the plugin">
+    Trigger the plugin by:
+    - Typing the prefix in Findex: `calc!`
+    - Using the keyboard shortcut: `Ctrl+Shift+C`
+  </Step>
+</Steps>
+
+<Note>
+  Always ensure plugins are compatible with your Findex version. Check the plugin documentation for details.
+</Note>
+
+## Tips and tricks
+
+### Performance tuning
+
+- Lower `result_size` if you have many applications installed
+- Increase `min_score` to show only closer matches
+- Adjust `max_content_height` based on your screen size
+
+### Keyboard efficiency
+
+- Use number keys (`1-9, 0`) to instantly launch top results
+- Set up plugin keyboard shortcuts for quick access
+- Keep `close_window_on_losing_focus = true` for a cleaner workflow
+
+### Visual consistency
+
+Match Findex to your desktop theme by:
+- Using your terminal color scheme in the CSS
+- Matching border radius values to other applications
+- Adjusting font sizes to match your system fonts
+
+## Troubleshooting
+
+### Findex doesn't appear
+
+1. Check if daemon is running: `ps aux | grep findex-daemon`
+2. Start daemon manually: `findex-daemon`
+3. Check logs: `cat ~/.cache/findex-logs/latest.log`
+
+### Hotkey not working
+
+- On Wayland: Bind the toggle command in your compositor settings
+- On X11: Check `toggle_key` syntax in `settings.toml`
+
+### CSS changes not applying
+
+- Ensure CSS syntax is valid
+- Close and reopen Findex completely
+- Check for syntax errors in the file
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Now that you're familiar with Findex basics:
 
-<CardGroup cols={2}>
+- Explore advanced CSS styling techniques
+- Try installing and configuring plugins
+- Create your own plugin for custom workflows
+- Fine-tune settings for your specific needs
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+<Info>
+  If you encounter issues, check `~/.cache/findex-logs/` for log files or report bugs on the [GitHub repository](https://github.com/mdgaziur/findex).
+</Info>

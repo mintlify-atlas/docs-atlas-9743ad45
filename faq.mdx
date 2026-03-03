@@ -1,0 +1,229 @@
+---
+title: FAQ
+description: Frequently asked questions about Findex
+---
+
+Frequently asked questions about Findex.
+
+<Accordion title="How do I report bugs?">
+  If you find any bugs, please:
+
+  1. Check existing [GitHub issues](https://github.com/mdgaziur/findex/issues) to see if it's already reported
+  2. Gather the latest log file from `${XDG_CACHE_HOME}/findex-logs`
+     - `XDG_CACHE_HOME` is normally `~/.cache`
+     - Look for the most recent log file (e.g., `findex-1234567890.log`)
+  3. Create a new issue on GitHub and include:
+     - Description of the bug
+     - Steps to reproduce
+     - Your system information (OS, compositor/window manager, Wayland/X11)
+     - The complete log file
+
+  <Info>
+    Including log files is crucial for debugging. Without them, it's much harder to diagnose issues.
+  </Info>
+</Accordion>
+
+<Accordion title="What's the difference between findex and findex-daemon?">
+  **findex** is the main application launcher interface that displays the search window and handles user interactions.
+
+  **findex-daemon** is a background service that:
+  - Manages the lifecycle of the findex process
+  - Automatically restarts findex if it crashes unexpectedly
+  - Watches for configuration changes in `~/.config/findex/`
+  - Automatically reloads findex when you modify settings or CSS
+  - Handles the toggle file mechanism for Wayland hotkey support
+
+  <Note>
+    You should run `findex-daemon` on startup, not `findex` directly. The daemon will automatically launch findex when needed.
+  </Note>
+
+  **Logs:**
+  - findex logs: `~/.cache/findex-logs/findex-<timestamp>.log`
+  - daemon logs: `~/.cache/findex-logs/findex-daemon-<timestamp>.log`
+</Accordion>
+
+<Accordion title="Can I use Findex on Wayland?">
+  Yes, but with some limitations:
+
+  **Limitations:**
+  - Findex cannot bind hotkeys directly due to Wayland security restrictions
+  - Window decoration settings may not work properly
+
+  **Workarounds:**
+
+  1. **For hotkeys**: Bind the toggle command through your compositor
+
+  For Hyprland:
+  ```bash
+  bind = $mod, space, exec, echo 1 > ~/.config/findex/toggle_file
+  ```
+
+  For Sway, add to your config:
+  ```bash
+  bindsym $mod+space exec echo 1 > ~/.config/findex/toggle_file
+  ```
+
+  2. **For window decorations**: Use compositor-specific window rules
+
+  <Info>
+    The `on_monitor` setting for multi-monitor support hasn't been fully tested on Wayland yet. Contributions are welcome!
+  </Info>
+</Accordion>
+
+<Accordion title="How do I uninstall Findex?">
+  **If installed from AUR:**
+  ```bash
+  # For findex-git
+  yay -R findex-git
+
+  # For findex-bin
+  yay -R findex-bin
+  ```
+
+  **If installed from source:**
+  ```bash
+  # Remove binaries
+  sudo rm /usr/bin/findex
+  sudo rm /usr/bin/findex-daemon
+
+  # Remove shared files
+  sudo rm -rf /opt/findex
+
+  # Stop and disable systemd service (if using)
+  systemctl --user stop findex-daemon.service
+  systemctl --user disable findex-daemon.service
+
+  # Kill any running processes
+  killall findex findex-daemon
+  ```
+
+  **Remove user data and configs:**
+  ```bash
+  rm -rf ~/.config/findex
+  rm -rf ~/.cache/findex-logs
+  ```
+
+  <Warning>
+    Removing `~/.config/findex` will delete your custom configurations and styles. Back them up if you plan to reinstall later.
+  </Warning>
+</Accordion>
+
+<Accordion title="How do I update Findex?">
+  **If installed from AUR:**
+  ```bash
+  # For findex-git
+  yay -Syu findex-git
+
+  # For findex-bin
+  yay -Syu findex-bin
+  ```
+
+  **If installed from source:**
+  1. Navigate to your Findex source directory
+  2. Pull the latest changes:
+     ```bash
+     git pull origin main
+     ```
+  3. Rebuild and reinstall:
+     ```bash
+     # Using the installer script
+     ./installer.sh
+
+     # Or manually
+     cargo build --release
+     sudo cp target/release/findex /usr/bin/
+     sudo cp target/release/findex-daemon /usr/bin/
+     sudo cp css/style.css /opt/findex/
+     ```
+  4. Restart the daemon:
+     ```bash
+     killall findex findex-daemon
+     findex-daemon
+     ```
+
+  <Info>
+    Your custom configurations in `~/.config/findex/` are preserved during updates.
+  </Info>
+</Accordion>
+
+<Accordion title="Where are config files stored?">
+  Findex follows the XDG Base Directory specification:
+
+  **Configuration directory:**
+  - `~/.config/findex/` (or `${XDG_CONFIG_HOME}/findex/`)
+
+  **Files in the config directory:**
+  - `settings.toml` - Main configuration file for behavior settings
+  - `style.css` - Custom CSS styling for the UI
+  - `toggle_file` - Used internally by the daemon for Wayland hotkey support
+  - Plugin configurations (if specified in `settings.toml`)
+
+  **Log directory:**
+  - `~/.cache/findex-logs/` (or `${XDG_CACHE_HOME}/findex-logs/`)
+
+  **Default styles:**
+  - `/opt/findex/style.css` - System-wide default stylesheet
+
+  <Note>
+    If config files don't exist, Findex will automatically generate them with default values on first run.
+  </Note>
+</Accordion>
+
+<Accordion title="Can I customize keyboard shortcuts for results?">
+  Yes! Findex supports shortcuts for executing each result (up to 10).
+
+  By default, you can use `Alt+1` through `Alt+0` to execute the 1st through 10th result respectively.
+
+  The shortcut display is controlled by the CSS class `findex-result-trigger-shortcut`.
+
+  You can customize the appearance in your `~/.config/findex/style.css`:
+
+  ```css
+  .findex-result-trigger-shortcut {
+    font-size: 12px;
+    color: #888;
+  }
+  ```
+</Accordion>
+
+<Accordion title="How do I create custom plugins?">
+  Findex supports Rust-based plugins using a simple API:
+
+  **Basic steps:**
+
+  1. Create a new Rust library project with `cdylib` crate type
+  2. Add `findex-plugin` and `abi_stable` as dependencies
+  3. Implement the `init` and `handle_query` functions
+  4. Use the `define_plugin!` macro to register your plugin
+  5. Build in release mode and copy the `.so` file to a convenient location
+  6. Add the plugin to your `settings.toml`
+
+  For detailed instructions and examples, see the [Plugins](/plugins/overview) documentation.
+
+  <Note>
+    Always ensure your plugins are compatible with your version of Findex to avoid crashes or unexpected behavior.
+  </Note>
+</Accordion>
+
+<Accordion title="Why does Findex need a daemon?">
+  The daemon provides several important features:
+
+  1. **Automatic recovery**: If findex crashes, the daemon automatically respawns it
+  2. **Configuration hot-reloading**: Changes to `settings.toml` or `style.css` are automatically applied
+  3. **Wayland support**: The daemon monitors the toggle file for Wayland hotkey integration
+  4. **Centralized logging**: Both findex and the daemon write to organized log files
+
+  Without the daemon, you would need to:
+  - Manually restart findex after crashes
+  - Restart findex every time you change configs
+  - Implement your own hotkey solution for Wayland
+</Accordion>
+
+## Still Have Questions?
+
+If your question isn't answered here:
+
+- Check the [Troubleshooting](/troubleshooting) guide
+- Review the project [README](https://github.com/mdgaziur/findex)
+- Ask in [GitHub Discussions](https://github.com/mdgaziur/findex/discussions)
+- Open an [issue](https://github.com/mdgaziur/findex/issues) if you've found a bug

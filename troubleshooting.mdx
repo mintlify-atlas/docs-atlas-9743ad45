@@ -1,0 +1,164 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for Findex
+---
+
+This page covers common issues you may encounter while using Findex and their solutions.
+
+## Common Issues
+
+<Accordion title="Hotkey not working">
+  <Note>
+    Findex cannot bind hotkeys directly in Wayland due to security restrictions.
+  </Note>
+
+  **Solution:**
+
+  If you're using Wayland, you need to bind the hotkey through your window manager or desktop environment.
+
+  For example, in Hyprland, add this to your `~/.config/hypr/hyprland.conf`:
+
+  ```bash
+  bind = $mod, space, exec, echo 1 > ~/.config/findex/toggle_file
+  ```
+
+  For X11, the hotkey should work out of the box. If it doesn't:
+  - Check your `~/.config/findex/settings.toml` file
+  - Verify the `toggle_key` setting (e.g., `<Alt>space`)
+  - Make sure no other application is using the same hotkey
+</Accordion>
+
+<Accordion title="Findex won't start">
+  **Check the logs:**
+
+  Findex stores logs at `~/.cache/findex-logs/` (or `${XDG_CACHE_HOME}/findex-logs` if you have a custom cache directory).
+
+  **Common causes:**
+
+  1. **Configuration error**: Check the latest log file for error messages about your `settings.toml` or `style.css`
+  2. **Missing dependencies**: Ensure you have GTK3 and libkeybinder3 installed
+  3. **Daemon not running**: Make sure `findex-daemon` is running in the background
+
+  **Steps to resolve:**
+
+  ```bash
+  # Check if findex-daemon is running
+  ps aux | grep findex-daemon
+
+  # View the latest log
+  ls -t ~/.cache/findex-logs/ | head -1 | xargs -I {} cat ~/.cache/findex-logs/{}
+
+  # Try restarting the daemon
+  killall findex findex-daemon
+  findex-daemon
+  ```
+</Accordion>
+
+<Accordion title="Plugin errors">
+  **Plugin not loading:**
+
+  <Warning>
+    Always ensure the plugins you're using are compatible with your version of Findex.
+  </Warning>
+
+  1. Verify the plugin path in `~/.config/findex/settings.toml` is correct
+  2. Check that the `.so` file exists and has the correct permissions
+  3. Review the logs at `~/.cache/findex-logs/` for plugin initialization errors
+
+  **Plugin configuration errors:**
+
+  Make sure your plugin configuration in `settings.toml` follows this format:
+
+  ```toml
+  PLUGIN = { path = "PLUGIN_PATH", prefix = "PREFIX", keyboard_shortcut = "<Ctrl><Shift>P", config = {} }
+  ```
+
+  **Plugin crashes Findex:**
+
+  If a plugin causes Findex to crash:
+  1. Check the logs for error messages
+  2. Try removing the plugin from your configuration
+  3. Contact the plugin developer with the error logs
+</Accordion>
+
+<Accordion title="Window decoration issues in Wayland">
+  <Info>
+    Window decoration settings may not work properly in Wayland due to compositor limitations.
+  </Info>
+
+  If you're experiencing issues with window decorations (borders, shadows, etc.) on Wayland:
+
+  **For Hyprland users:**
+
+  Add these window rules to your `~/.config/hypr/hyprland.conf`:
+
+  ```bash
+  windowrulev2 = float, class:^(findex)$
+  windowrulev2 = noanim, class:^(findex)$
+  windowrulev2 = noborder, class:^(findex)$
+  windowrulev2 = noshadow, class:^(findex)$
+  ```
+
+  **For other compositors:**
+
+  Consult your compositor's documentation for similar window rules. You may need to disable borders, shadows, and animations for the `findex` window class.
+</Accordion>
+
+<Accordion title="Daemon already running error">
+  If you see the error:
+
+  ```
+  [ERROR] Findex is already running
+  [ERROR] Help: You may want to kill with `killall findex findex-daemon`
+  ```
+
+  This means there's already an instance of Findex running.
+
+  **Solution:**
+
+  ```bash
+  # Kill all Findex processes
+  killall findex findex-daemon
+
+  # Wait a moment, then restart
+  findex-daemon
+  ```
+
+  If the error persists after killing the processes:
+  1. Check for orphaned processes: `ps aux | grep findex`
+  2. Kill them manually: `kill -9 <PID>`
+  3. Restart the daemon
+</Accordion>
+
+<Accordion title="Configuration errors">
+  **Invalid settings.toml:**
+
+  If Findex won't start after modifying your configuration:
+
+  1. Check the logs at `~/.cache/findex-logs/` for TOML parsing errors
+  2. Verify your TOML syntax is valid
+  3. Back up your current config and delete `~/.config/findex/settings.toml`
+  4. Run Findex to generate a fresh configuration file
+  5. Carefully reapply your customizations
+
+  **Invalid CSS:**
+
+  If styling isn't working:
+
+  1. Check for CSS syntax errors in `~/.config/findex/style.css`
+  2. Review the [customization documentation](/guides/customization) for valid CSS classes
+  3. Test with the default CSS by temporarily renaming your custom file
+
+  <Note>
+    The findex-daemon automatically watches for configuration changes and restarts Findex when configs are modified.
+  </Note>
+</Accordion>
+
+## Getting More Help
+
+If you're still experiencing issues:
+
+1. Check the latest logs in `~/.cache/findex-logs/`
+2. Review the [FAQ](/faq) page
+3. Search existing [GitHub issues](https://github.com/mdgaziur/findex/issues)
+4. Create a new issue with your log files if the problem persists

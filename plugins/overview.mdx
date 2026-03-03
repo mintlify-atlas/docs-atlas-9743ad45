@@ -1,0 +1,104 @@
+---
+title: Plugin System Overview
+description: Extend Findex with custom search functionality using the plugin system
+---
+
+Findex features a powerful plugin system that allows you to extend its search capabilities beyond application launching. Plugins can add custom search handlers for URLs, calculations, repository lookups, command execution, and more.
+
+## What Are Plugins?
+
+Plugins are dynamic libraries that extend Findex's search functionality by:
+
+- Adding custom search handlers triggered by prefixes (e.g., `url!`, `github!`, `cmd!`)
+- Processing user queries and returning custom results
+- Integrating external tools and services
+- Providing keyboard shortcuts for quick access
+
+## Architecture
+
+Findex plugins are built as Rust `cdylib` (C-compatible dynamic libraries) that expose a standard interface:
+
+- **Prefix-based activation**: Plugins respond when users type a specific prefix in the search box
+- **Query handling**: Process the text after the prefix and return formatted results
+- **Configuration support**: Accept user-defined settings from `settings.toml`
+- **Keyboard shortcuts**: Optional shortcuts that insert the plugin's prefix
+
+<Note>
+Plugins are written in Rust and use the `findex-plugin` crate with `abi_stable` for stable binary interfaces.
+</Note>
+
+## Plugin Configuration Format
+
+Plugins are configured in your `~/.config/findex/settings.toml` file:
+
+```toml
+[plugins.my_plugin]
+path = "/path/to/plugin.so"
+prefix = "custom!"
+keyboard_shortcut = "<Ctrl><Shift>P"
+
+[plugins.my_plugin.config]
+key1 = "value1"
+key2 = "value2"
+```
+
+| Property | Description | Required |
+|----------|-------------|----------|
+| `path` | Path to the plugin's `.so` file | Yes |
+| `prefix` | Override the plugin's default prefix | No |
+| `keyboard_shortcut` | Custom keyboard shortcut (GTK accelerator format) | No |
+| `config` | Plugin-specific configuration key-value pairs | No |
+
+## How Plugins Work
+
+<Steps>
+  <Step title="User types prefix">
+    When you type a plugin's prefix (e.g., `url!`) in the search box, Findex activates that plugin.
+  </Step>
+  
+  <Step title="Query processing">
+    The plugin receives the text after the prefix and processes it according to its logic.
+  </Step>
+  
+  <Step title="Return results">
+    The plugin returns formatted results with names, descriptions, commands, icons, and scores.
+  </Step>
+  
+  <Step title="User selection">
+    When you select a result and press Enter, Findex executes the associated command.
+  </Step>
+</Steps>
+
+## Result Structure
+
+Plugins return results using the `FResult` structure:
+
+```rust
+pub struct FResult {
+    pub name: RString,                    // Display name
+    pub desc: ROption<RString>,          // Optional description
+    pub cmd: ApplicationCommand,         // Command to execute
+    pub icon: RString,                   // Icon name or path
+    pub score: isize,                    // Sorting priority
+}
+```
+
+<Warning>
+Always ensure plugins are compatible with your Findex version. Binary interface changes can cause incompatibilities.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Using Plugins" icon="download" href="/plugins/using-plugins">
+    Learn how to install and configure plugins
+  </Card>
+  
+  <Card title="Built-in Plugins" icon="plug" href="/plugins/available-plugins">
+    Explore plugins included with Findex
+  </Card>
+  
+  <Card title="Developing Plugins" icon="code" href="/plugins/developing-plugins">
+    Create your own custom plugins
+  </Card>
+</CardGroup>

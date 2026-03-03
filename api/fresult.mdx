@@ -1,0 +1,234 @@
+---
+title: "FResult Struct"
+description: "Documentation for the FResult struct used to represent search results in Findex plugins"
+---
+
+## Overview
+
+The `FResult` struct represents a single search result returned by plugins or Findex's internal code. Each plugin's `handle_query` function returns a vector of `FResult` instances that are displayed to the user.
+
+## Type Definition
+
+Reference: `/home/daytona/workspace/source/crates/findex-plugin/src/lib.rs:9-20`
+
+```rust
+#[derive(Clone)]
+#[repr(C)]
+pub struct FResult {
+    pub name: RString,
+    pub desc: ROption<RString>,
+    pub cmd: ApplicationCommand,
+    pub icon: RString,
+    pub score: isize,
+}
+```
+
+## Fields
+
+<ResponseField name="name" type="RString" required>
+  The primary text displayed for the result. This is the main name or title that users will see in the search results list.
+  
+  ```rust
+  name: RString::from("My Application")
+  ```
+</ResponseField>
+
+<ResponseField name="desc" type="ROption<RString>">
+  An optional description that provides additional context about the result. Use `RNone` if no description is needed, or `RSome(RString::from("description"))` to provide one.
+  
+  ```rust
+  // No description
+  desc: RNone
+  
+  // With description
+  desc: RSome(RString::from("This is a helpful description"))
+  ```
+</ResponseField>
+
+<ResponseField name="cmd" type="ApplicationCommand" required>
+  The command to execute when the user selects this result (by pressing Enter). See [ApplicationCommand](#applicationcommand-enum) below for variants.
+  
+  ```rust
+  cmd: ApplicationCommand::Command(RString::from("firefox"))
+  ```
+</ResponseField>
+
+<ResponseField name="icon" type="RString" required>
+  The icon identifier to display next to the result. This can be:
+  - An icon name from the system icon theme (e.g., `"firefox"`, `"folder"`, `"terminal"`)
+  - A path to an icon file
+  - A standard icon name (e.g., `"application-x-executable"`)
+  
+  ```rust
+  icon: RString::from("calculator")
+  ```
+</ResponseField>
+
+<ResponseField name="score" type="isize" required>
+  A score used to sort results. Higher scores appear first in the results list. Use `isize::MAX` for results that should always appear at the top.
+  
+  ```rust
+  // High priority result
+  score: isize::MAX
+  
+  // Medium priority
+  score: 100
+  
+  // Low priority
+  score: 10
+  ```
+</ResponseField>
+
+## ApplicationCommand Enum
+
+Reference: `/home/daytona/workspace/source/crates/findex-plugin/src/lib.rs:22-31`
+
+The `ApplicationCommand` enum specifies what action to take when a result is selected:
+
+```rust
+#[derive(Clone, PartialEq)]
+#[repr(C)]
+pub enum ApplicationCommand {
+    Command(RString),
+    Id(RString),
+    None,
+}
+```
+
+### Variants
+
+<ResponseField name="Command" type="Command(RString)">
+  Execute a shell command exactly as specified. The command will be run in the user's default shell.
+  
+  ```rust
+  ApplicationCommand::Command(RString::from("firefox https://example.com"))
+  ApplicationCommand::Command(RString::from("echo 'Hello World'"))
+  ```
+</ResponseField>
+
+<ResponseField name="Id" type="Id(RString)">
+  Launch an application using its GIO AppInfo ID. This is the standard way to launch desktop applications on Linux.
+  
+  ```rust
+  ApplicationCommand::Id(RString::from("org.mozilla.firefox.desktop"))
+  ApplicationCommand::Id(RString::from("org.gnome.Nautilus.desktop"))
+  ```
+</ResponseField>
+
+<ResponseField name="None" type="None">
+  Don't execute any command. Useful for plugins that display information only, such as a calculator plugin that shows the result but doesn't need to launch anything.
+  
+  ```rust
+  ApplicationCommand::None
+  ```
+</ResponseField>
+
+## Complete Examples
+
+### Calculator Result (No Action)
+
+```rust
+FResult {
+    name: RString::from("42"),
+    desc: RSome(RString::from("Result of 6 × 7")),
+    cmd: ApplicationCommand::None,
+    icon: RString::from("accessories-calculator"),
+    score: isize::MAX,
+}
+```
+
+### Command Execution
+
+```rust
+FResult {
+    name: RString::from("Run 'ls -la'"),
+    desc: RSome(RString::from("List all files in current directory")),
+    cmd: ApplicationCommand::Command(RString::from("ls -la")),
+    icon: RString::from("terminal"),
+    score: 100,
+}
+```
+
+### Application Launch
+
+```rust
+FResult {
+    name: RString::from("Firefox Web Browser"),
+    desc: RSome(RString::from("Browse the World Wide Web")),
+    cmd: ApplicationCommand::Id(RString::from("firefox.desktop")),
+    icon: RString::from("firefox"),
+    score: 95,
+}
+```
+
+### URL Opener
+
+```rust
+FResult {
+    name: RString::from("Open GitHub"),
+    desc: RNone,
+    cmd: ApplicationCommand::Command(RString::from("xdg-open https://github.com")),
+    icon: RString::from("web-browser"),
+    score: isize::MAX,
+}
+```
+
+## Working with ABI-Stable Types
+
+<Note>
+All fields use types from the `abi_stable` crate (prefixed with `R`) to ensure compatibility across different Rust compiler versions:
+
+- `RString` instead of `String`
+- `RVec` instead of `Vec`
+- `ROption` instead of `Option`
+- `RHashMap` instead of `HashMap`
+
+These types can be converted from/to standard Rust types:
+
+```rust
+// From standard types
+let r_string = RString::from("hello");
+let r_string = RString::from(my_string);
+
+// To standard types  
+let string: String = r_string.into();
+```
+</Note>
+
+## Return Multiple Results
+
+Your `handle_query` function should return a vector of results:
+
+```rust
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let results = vec![
+        FResult {
+            name: RString::from("First Result"),
+            desc: RNone,
+            cmd: ApplicationCommand::Command(RString::from("echo 1")),
+            icon: RString::from("dialog-information"),
+            score: 100,
+        },
+        FResult {
+            name: RString::from("Second Result"),
+            desc: RNone,
+            cmd: ApplicationCommand::Command(RString::from("echo 2")),
+            icon: RString::from("dialog-information"),
+            score: 90,
+        },
+    ];
+    
+    RVec::from(results)
+}
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Plugin Basics" icon="book" href="/api/plugin-basics">
+    Learn the fundamentals of Findex plugin development
+  </Card>
+  <Card title="Plugin Macros" icon="code" href="/api/plugin-macros">
+    Explore the define_plugin! macro
+  </Card>
+</CardGroup>

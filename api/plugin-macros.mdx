@@ -1,0 +1,348 @@
+---
+title: "Plugin Macros"
+description: "Documentation for the define_plugin! macro used to create Findex plugins"
+---
+
+## Overview
+
+The `define_plugin!` macro is the core of Findex's plugin system. It exports the necessary symbols and FFI functions that allow Findex to load and interact with your plugin.
+
+## Macro Reference
+
+Reference: `/home/daytona/workspace/source/crates/findex-plugin/src/lib.rs:63-103`
+
+The macro has two variants:
+
+1. **Without keyboard shortcut**: Basic plugin with a prefix
+2. **With keyboard shortcut**: Plugin with prefix and custom keyboard activation
+
+## Syntax
+
+### Basic Syntax (Without Keyboard Shortcut)
+
+```rust
+define_plugin!(prefix, init_function, query_handler);
+```
+
+<ParamField path="prefix" type="&str" required>
+  The prefix string that triggers your plugin. When users type this prefix in Findex, your plugin's query handler will be invoked.
+  
+  Common patterns:
+  - End with `!` for command-style plugins: `"cmd!"`, `"calc!"`
+  - Use descriptive names: `"github!"`, `"wiki!"`
+  - Empty string `""` for plugins that should always be active
+</ParamField>
+
+<ParamField path="init_function" type="identifier" required>
+  The name of your initialization function. Must match the signature:
+  
+  ```rust
+  fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString>
+  ```
+</ParamField>
+
+<ParamField path="query_handler" type="identifier" required>
+  The name of your query handling function. Must match the signature:
+  
+  ```rust
+  fn handle_query(query: RStr) -> RVec<FResult>
+  ```
+</ParamField>
+
+### Extended Syntax (With Keyboard Shortcut)
+
+```rust
+define_plugin!(prefix, keyboard_shortcut, init_function, query_handler);
+```
+
+<ParamField path="keyboard_shortcut" type="&str" required>
+  A GTK accelerator string that defines a keyboard shortcut for triggering the plugin. When pressed, Findex will insert the plugin's prefix into the search box.
+  
+  Common patterns:
+  - `"<Ctrl><Shift>p"` - Ctrl+Shift+P
+  - `"<Alt>c"` - Alt+C  
+  - `"<Super>g"` - Super/Windows+G
+  - `"<Ctrl><Alt>t"` - Ctrl+Alt+T
+  
+  Must be a valid GTK accelerator format.
+</ParamField>
+
+## Function Signatures
+
+### Init Function
+
+The initialization function is called once when Findex loads your plugin at startup.
+
+```rust
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString>
+```
+
+<ParamField path="config" type="&RHashMap<RString, RString>">
+  A hash map containing plugin-specific configuration from `settings.toml`. Keys and values are both strings.
+  
+  Access values like:
+  ```rust
+  if let Some(api_key) = config.get(&RString::from("api_key")) {
+      // Use the API key
+  }
+  ```
+</ParamField>
+
+**Returns**: `RResult<(), RString>`
+- Return `ROk(())` if initialization succeeds
+- Return `RErr(RString::from("error message"))` if initialization fails
+
+<Note>
+If initialization fails, Findex will not load the plugin and will log the error message.
+</Note>
+
+### Handle Query Function
+
+The query handler is called every time the user types text after your plugin's prefix.
+
+```rust
+fn handle_query(query: RStr) -> RVec<FResult>
+```
+
+<ParamField path="query" type="RStr">
+  The user's query text after the prefix. For example, if the prefix is `"calc!"` and the user types `"calc!2+2"`, the query will be `"2+2"`.
+  
+  Convert to standard String:
+  ```rust
+  let query_string: String = query.into();
+  ```
+</ParamField>
+
+**Returns**: `RVec<FResult>`
+- A vector of results to display to the user
+- Return an empty vector if no results match the query
+- Results are sorted by their `score` field (higher scores appear first)
+
+See [FResult Documentation](/api/fresult) for details on creating results.
+
+## Complete Examples
+
+### Example 1: Math Calculator Plugin
+
+Reference: `/home/daytona/workspace/source/plugins/math/src/lib.rs`
+
+```rust src/lib.rs
+use abi_stable::std_types::*;
+use findex_plugin::{ApplicationCommand, define_plugin, FResult};
+
+fn init(_config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // No initialization needed for calculator
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let mut context = fend_core::Context::new();
+
+    let Ok(result) = fend_core::evaluate(&format!("@plain_number {}", query), &mut context) else {
+        return RVec::new();
+    };
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::None,
+        icon: RString::from("calc"),
+        score: isize::MAX,
+        name: RString::from(result.get_main_result()),
+        desc: RNone,
+    }])
+}
+
+// Plugin triggered by typing (no prefix)
+define_plugin!("", init, handle_query);
+```
+
+### Example 2: Command Runner with Keyboard Shortcut
+
+Reference: `/home/daytona/workspace/source/plugins/cmd/src/lib.rs`
+
+```rust src/lib.rs
+use findex_plugin::{ApplicationCommand, define_plugin, FResult};
+use abi_stable::std_types::*;
+
+fn init(_config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    if query == "" {
+        return RVec::new();
+    }
+
+    RVec::from(vec![FResult {
+        cmd: ApplicationCommand::Command(RString::from(format!("{query}"))),
+        name: RString::from(format!("Run \"{query}\"")),
+        desc: RNone,
+        score: isize::MAX,
+        icon: RString::from("terminal"),
+    }])
+}
+
+// Plugin with prefix "cmd!" and keyboard shortcut Ctrl+Shift+C
+define_plugin!("cmd!", "<Ctrl><Shift>c", init, handle_query);
+```
+
+### Example 3: Plugin with Configuration
+
+```rust src/lib.rs
+use abi_stable::std_types::*;
+use findex_plugin::{ApplicationCommand, define_plugin, FResult};
+use std::sync::OnceLock;
+
+static API_KEY: OnceLock<String> = OnceLock::new();
+
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Get required API key from config
+    let Some(api_key) = config.get(&RString::from("api_key")) else {
+        return RErr(RString::from("Missing required 'api_key' in config"));
+    };
+    
+    // Validate API key format
+    let api_key_str: String = api_key.clone().into();
+    if api_key_str.len() < 10 {
+        return RErr(RString::from("API key must be at least 10 characters"));
+    }
+    
+    // Store for use in handle_query
+    API_KEY.set(api_key_str).unwrap();
+    
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let api_key = API_KEY.get().unwrap();
+    
+    // Use api_key to fetch results...
+    
+    RVec::new()
+}
+
+define_plugin!("api!", "<Ctrl><Shift>a", init, handle_query);
+```
+
+Corresponding `settings.toml` configuration:
+
+```toml
+api_plugin = { path = "/path/to/libapi_plugin.so", config = { api_key = "your_api_key_here" } }
+```
+
+### Example 4: URL Opener Plugin
+
+```rust src/lib.rs
+use abi_stable::std_types::*;
+use findex_plugin::{ApplicationCommand, define_plugin, FResult};
+
+fn init(_config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    ROk(())
+}
+
+fn handle_query(query: RStr) -> RVec<FResult> {
+    let query_str: String = query.into();
+    
+    // Only show results for URLs
+    if !query_str.starts_with("http://") && !query_str.starts_with("https://") {
+        return RVec::new();
+    }
+    
+    RVec::from(vec![FResult {
+        name: RString::from(format!("Open {}", query_str)),
+        desc: RSome(RString::from("Open URL in default browser")),
+        cmd: ApplicationCommand::Command(
+            RString::from(format!("xdg-open {}", query_str))
+        ),
+        icon: RString::from("web-browser"),
+        score: isize::MAX,
+    }])
+}
+
+define_plugin!("url!", "<Ctrl><Shift>u", init, handle_query);
+```
+
+## How the Macro Works
+
+The `define_plugin!` macro expands to:
+
+1. **Static prefix export**: Exports a C-compatible static string with your prefix
+2. **Static keyboard shortcut export** (if provided): Exports the keyboard shortcut
+3. **Init function wrapper**: Creates an `extern "C"` wrapper around your init function
+4. **Query handler wrapper**: Creates an `extern "C"` wrapper around your query handler
+
+These exports allow Findex to dynamically load your plugin and call your functions through FFI.
+
+<Note>
+You should never need to manually create these exports - always use the `define_plugin!` macro.
+</Note>
+
+## Best Practices
+
+### Choosing a Prefix
+
+- Use descriptive prefixes that indicate the plugin's purpose
+- End with `!` for consistency with built-in plugins
+- Keep prefixes short (2-10 characters)
+- Avoid conflicts with common words
+
+### Error Handling in Init
+
+- Validate all required configuration in the `init` function
+- Return clear error messages if initialization fails
+- Log any warnings but don't fail initialization for non-critical issues
+
+```rust
+fn init(config: &RHashMap<RString, RString>) -> RResult<(), RString> {
+    // Validate required config
+    if config.get(&RString::from("required_field")).is_none() {
+        return RErr(RString::from("Missing required config field: required_field"));
+    }
+    
+    // Warn about optional config (but don't fail)
+    if config.get(&RString::from("optional_field")).is_none() {
+        eprintln!("Warning: optional_field not set, using default");
+    }
+    
+    ROk(())
+}
+```
+
+### Performance in Handle Query
+
+- Return results quickly - users expect instant feedback
+- Return an empty vector immediately for queries that won't match
+- Consider caching expensive computations
+- Use appropriate score values to rank results
+
+```rust
+fn handle_query(query: RStr) -> RVec<FResult> {
+    // Quick rejection for empty queries
+    if query.is_empty() {
+        return RVec::new();
+    }
+    
+    // Quick rejection for invalid input
+    let query_str: String = query.into();
+    if !is_valid_input(&query_str) {
+        return RVec::new();
+    }
+    
+    // Process valid queries...
+    let results = process_query(&query_str);
+    RVec::from(results)
+}
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Plugin Basics" icon="book" href="/api/plugin-basics">
+    Learn the fundamentals of plugin development
+  </Card>
+  <Card title="FResult Struct" icon="box" href="/api/fresult">
+    Learn about the result type
+  </Card>
+  <Card title="Configuration" icon="gear" href="/api/configuration">
+    Configure your plugin
+  </Card>
+</CardGroup>

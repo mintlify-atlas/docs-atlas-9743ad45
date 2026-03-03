@@ -1,0 +1,83 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Findex",
+  "projectDescription": "A highly customizable GTK3 application launcher for Linux written in Rust",
+  "theme": "aspen",
+  "primaryColor": "#ff6b35",
+  "lightColor": "#ff8c61",
+  "darkColor": "#d94f1e",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "guides/configuration",
+              "guides/customization",
+              "guides/keyboard-shortcuts",
+              "guides/wayland"
+            ]
+          },
+          {
+            "group": "Plugins",
+            "pages": [
+              "plugins/overview",
+              "plugins/using-plugins",
+              "plugins/available-plugins",
+              "plugins/developing-plugins"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "troubleshooting",
+              "faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Plugin API",
+            "pages": [
+              "api/plugin-basics",
+              "api/fresult",
+              "api/plugin-macros",
+              "api/configuration"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Customizable GTK3 application launcher with CSS styling",
+    "Extensible plugin system with Rust-based plugins",
+    "Fuzzy search with configurable scoring and result ranking",
+    "Global keyboard shortcuts for quick access",
+    "Daemon-based architecture for persistent hotkey listening",
+    "Support for both X11 and Wayland desktop environments"
+  ],
+  "publicApiSurface": [
+    "findex - Main application launcher binary",
+    "findex-daemon - Background daemon for hotkey management",
+    "findex-plugin - Plugin development library",
+    "FResult - Plugin result structure (name, desc, cmd, icon, score)",
+    "define_plugin! - Macro for defining plugins with prefix and handlers",
+    "ApplicationCommand - Enum for command execution (Command, Id, None)",
+    "Settings configuration - settings.toml with window, theme, and plugin options",
+    "CSS customization - style.css with GTK widget class selectors"
+  ]
+}
